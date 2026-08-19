@@ -1,8 +1,8 @@
 import { SOUND_CATEGORIES, SOUND_DATABASE } from './soundDatabase.js';
 
 export const PACK_SCHEMA_VERSION = '1.1.0';
-export const DEFAULT_PACK_REVISION = 2;
-export const CACHE_VERSION_KEY = 'guessound_cache_version_v1_1';
+export const DEFAULT_PACK_REVISION = 3;
+export const CACHE_VERSION_KEY = 'guessound_cache_version_v1_1_2';
 
 const STORAGE_PACKS_KEY = 'guessound_sound_packs_v2';
 const STORAGE_ACTIVE_PACK_KEY = 'guessound_active_pack_id_v2';
@@ -438,7 +438,7 @@ export const BUILTIN_PACKS = [
     description: 'Vintage laser blasters, space jump pads, warp drive engines, and retro synthesizer mysteries.',
     author: 'Pixel Foley Lab',
     version: '1.1.0',
-    revision: 2,
+    revision: 3,
     updatedAt: 1771500000000,
     icon: '👾',
     timerSeconds: 12,
@@ -486,7 +486,7 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Continuous sub-harmonic hum of anti-matter magnetic containment drives.',
         funFact: 'Sci-fi spaceship engine hums are often tuned to 50 Hz or 60 Hz to match electrical grid hums.',
-        sceneModel: 'massage_gun',
+        sceneModel: 'warp_core',
         difficulty: 2,
       },
       {
@@ -507,7 +507,7 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'The classic platformer sound effect of launching a pixel hero across floating platforms.',
         funFact: 'Early video game sound chips were limited to just 4 simultaneous audio channels.',
-        sceneModel: 'resistance_band',
+        sceneModel: 'spring_pad',
         difficulty: 1,
       },
     ],

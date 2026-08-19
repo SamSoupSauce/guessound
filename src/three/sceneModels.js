@@ -40,6 +40,10 @@ export class SceneModelFactory {
         return this._buildWoodpecker(group);
       case 'water_slide':
         return this._buildWaterSlide(group);
+      case 'warp_core':
+        return this._buildWarpCore(group);
+      case 'spring_pad':
+        return this._buildSpringPad(group);
       default:
         return this._buildDefaultSonic(group);
     }
@@ -672,6 +676,169 @@ export class SceneModelFactory {
       const pt = slideCurve.getPointAt(progress);
       raft.position.copy(pt);
       raft.position.y += 0.2;
+    };
+
+    return group;
+  }
+
+  static _buildWarpCore(group) {
+    // 1. Heavy Industrial Magnetic Containment Endcaps
+    const metalMat = new THREE.MeshStandardMaterial({
+      color: 0x1d2d44,
+      metalness: 0.85,
+      roughness: 0.25,
+    });
+    const glowMatBlue = new THREE.MeshStandardMaterial({
+      color: 0x00f0ff,
+      emissive: 0x00b4d8,
+      emissiveIntensity: 1.5,
+      metalness: 0.2,
+      roughness: 0.1,
+    });
+
+    const baseGeo = new THREE.CylinderGeometry(1.4, 1.6, 0.4, 32);
+    const topBase = new THREE.Mesh(baseGeo, metalMat);
+    topBase.position.y = 2.0;
+    const botBase = new THREE.Mesh(baseGeo, metalMat);
+    botBase.position.y = -2.0;
+    group.add(topBase, botBase);
+
+    // 2. Vertical Glass Warp Plasma Containment Chamber
+    const glassGeo = new THREE.CylinderGeometry(1.0, 1.0, 3.8, 32, 1, true);
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transmission: 0.85,
+      opacity: 0.4,
+      transparent: true,
+      roughness: 0.1,
+      metalness: 0.1,
+    });
+    const glassChamber = new THREE.Mesh(glassGeo, glassMat);
+    group.add(glassChamber);
+
+    // 3. Central Dilithium Reaction Crystal Core Chamber
+    const centerChamberGeo = new THREE.TorusGeometry(1.25, 0.18, 16, 32);
+    const centerRing = new THREE.Mesh(centerChamberGeo, glowMatBlue);
+    centerRing.rotation.x = Math.PI / 2;
+    group.add(centerRing);
+
+    const crystalGeo = new THREE.OctahedronGeometry(0.5, 0);
+    const crystalMat = new THREE.MeshStandardMaterial({
+      color: 0xff00ff,
+      emissive: 0xff007f,
+      emissiveIntensity: 2.2,
+      roughness: 0.1,
+    });
+    const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+    group.add(crystal);
+
+    // 4. Stacking Pulsing Magnetic Acceleration Rings
+    const ringCount = 6;
+    const rings = [];
+    for (let i = 0; i < ringCount; i++) {
+      const ringGeo = new THREE.TorusGeometry(1.06, 0.08, 12, 32);
+      const ringMesh = new THREE.Mesh(ringGeo, glowMatBlue.clone());
+      ringMesh.rotation.x = Math.PI / 2;
+      const yOffset = (i - (ringCount - 1) / 2) * 0.55;
+      ringMesh.position.y = yOffset;
+      group.add(ringMesh);
+      rings.push({ mesh: ringMesh, baseY: yOffset, index: i });
+    }
+
+    // 5. Plasma Particle Cascade
+    const pCount = 80;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(pCount * 3);
+    for (let p = 0; p < pCount * 3; p += 3) {
+      const r = Math.random() * 0.7;
+      const theta = Math.random() * Math.PI * 2;
+      pPos[p] = Math.cos(theta) * r;
+      pPos[p + 1] = (Math.random() - 0.5) * 3.4;
+      pPos[p + 2] = Math.sin(theta) * r;
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({
+      size: 0.18,
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+    });
+    const particles = new THREE.Points(pGeo, pMat);
+    group.add(particles);
+
+    // 6. External Support Conduits
+    for (let s = 0; s < 4; s++) {
+      const angle = (s / 4) * Math.PI * 2;
+      const strutGeo = new THREE.CylinderGeometry(0.08, 0.08, 4.0, 12);
+      const strut = new THREE.Mesh(strutGeo, metalMat);
+      strut.position.set(Math.cos(angle) * 1.35, 0, Math.sin(angle) * 1.35);
+      group.add(strut);
+    }
+
+    group.userData.update = (time, audioVol, delta) => {
+      crystal.rotation.y = time * 2.5;
+      crystal.rotation.x = Math.sin(time * 3) * 0.4;
+      crystal.scale.setScalar(1.0 + Math.sin(time * 8) * 0.15 + (audioVol || 0) * 0.4);
+
+      centerRing.rotation.z = time * 1.5;
+
+      rings.forEach((r) => {
+        const pulse = Math.sin(time * 10 - Math.abs(r.baseY) * 4);
+        const glow = Math.max(0.4, (pulse + 1) * 0.8 + (audioVol || 0) * 1.2);
+        r.mesh.material.emissiveIntensity = glow;
+        r.mesh.scale.setScalar(1.0 + (pulse > 0.8 ? 0.08 : 0));
+      });
+
+      const positions = particles.geometry.attributes.position.array;
+      for (let i = 1; i < positions.length; i += 3) {
+        if (positions[i] > 0) {
+          positions[i] -= (delta || 0.016) * (1.5 + (audioVol || 0) * 3.0);
+          if (positions[i] < 0.1) positions[i] = 1.8;
+        } else {
+          positions[i] += (delta || 0.016) * (1.5 + (audioVol || 0) * 3.0);
+          if (positions[i] > -0.1) positions[i] = -1.8;
+        }
+      }
+      particles.geometry.attributes.position.needsUpdate = true;
+      group.rotation.y = time * 0.4;
+    };
+
+    return group;
+  }
+
+  static _buildSpringPad(group) {
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.3 });
+    const springMat = new THREE.MeshStandardMaterial({ color: 0xffbe0b, metalness: 0.9, roughness: 0.2 });
+    const padMat = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.4, emissive: 0x330011 });
+
+    const baseGeo = new THREE.CylinderGeometry(1.6, 1.8, 0.4, 32);
+    const base = new THREE.Mesh(baseGeo, metalMat);
+    base.position.y = -1.2;
+    group.add(base);
+
+    const springGeo = new THREE.TorusGeometry(0.7, 0.15, 12, 32);
+    const coils = [];
+    for (let c = 0; c < 5; c++) {
+      const coil = new THREE.Mesh(springGeo, springMat);
+      coil.rotation.x = Math.PI / 2;
+      coil.position.y = -0.9 + c * 0.35;
+      group.add(coil);
+      coils.push({ mesh: coil, base: -0.9 + c * 0.35, idx: c });
+    }
+
+    const topPadGeo = new THREE.CylinderGeometry(1.4, 1.4, 0.3, 32);
+    const topPad = new THREE.Mesh(topPadGeo, padMat);
+    topPad.position.y = 0.8;
+    group.add(topPad);
+
+    group.userData.update = (time, audioVol) => {
+      const bounce = Math.abs(Math.sin(time * 6));
+      topPad.position.y = 0.2 + bounce * 0.9;
+      coils.forEach((c) => {
+        c.mesh.position.y = -0.9 + (c.idx / 4) * (1.1 + bounce * 0.8);
+      });
+      group.rotation.y = time * 0.5;
     };
 
     return group;
