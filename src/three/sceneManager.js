@@ -12,13 +12,13 @@ export class SceneManager {
     this.height = this.container.clientHeight || window.innerHeight;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x120a06); // Warm dark mahogany theater backdrop
-    this.scene.fog = new THREE.FogExp2(0x120a06, 0.035);
+    this.scene.background = new THREE.Color(0x1a0f08); // Warm dark mahogany theater backdrop
+    this.scene.fog = new THREE.FogExp2(0x1a0f08, 0.018);
 
-    this.camera = new THREE.PerspectiveCamera(50, this.width / this.height, 0.1, 100);
-    this.camera.position.set(0, 1.8, 7.8);
-    this.targetCameraPos = new THREE.Vector3(0, 1.8, 7.8);
-    this.targetCameraLookAt = new THREE.Vector3(0, 0.2, 0);
+    this.camera = new THREE.PerspectiveCamera(48, this.width / this.height, 0.1, 100);
+    this.camera.position.set(0, 1.3, 6.6);
+    this.targetCameraPos = new THREE.Vector3(0, 1.3, 6.6);
+    this.targetCameraLookAt = new THREE.Vector3(0, 0.3, 0);
 
     this.cameraShakeIntensity = 0;
     this.isRevealedState = false;
@@ -27,7 +27,7 @@ export class SceneManager {
     this.renderer.setSize(this.width, this.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.35;
+    this.renderer.toneMappingExposure = 1.4;
     this.container.appendChild(this.renderer.domElement);
 
     this.clock = new THREE.Clock();
@@ -44,27 +44,33 @@ export class SceneManager {
 
   _setupEnvironment() {
     // Warm Ambient Light
-    const ambient = new THREE.AmbientLight(0xffeedd, 0.85);
+    const ambient = new THREE.AmbientLight(0xffeedd, 1.1);
     this.scene.add(ambient);
 
+    // Main Stage Key Light
+    const keyLight = new THREE.DirectionalLight(0xffeedd, 2.6);
+    keyLight.position.set(0, 5, 6);
+    this.scene.add(keyLight);
+
     // Warm Gold Stage Spotlight (Edison Incandescent)
-    this.mainLight = new THREE.SpotLight(0xffbe0b, 4.5, 30, Math.PI / 3.5, 0.45, 1);
+    this.mainLight = new THREE.SpotLight(0xffbe0b, 5.0, 30, Math.PI / 3.2, 0.45, 1);
     this.mainLight.position.set(0, 8.5, 5);
     this.mainLight.target.position.set(0, 0, 0);
-    this.scene.add(this.mainLight, this.mainLight.target);
+    this.scene.add(this.mainLight);
+    this.scene.add(this.mainLight.target);
 
     // Dynamic Team Colored Rim Light
-    this.rimLight = new THREE.DirectionalLight(0xd4af37, 2.4);
+    this.rimLight = new THREE.DirectionalLight(0xd4af37, 2.8);
     this.rimLight.position.set(-6, 5, -4);
     this.scene.add(this.rimLight);
 
     // Dynamic TV Contrast Light
-    this.tvFill = new THREE.DirectionalLight(0x00f0ff, 1.4);
+    this.tvFill = new THREE.DirectionalLight(0x00f0ff, 1.8);
     this.tvFill.position.set(6, 4, -3);
     this.scene.add(this.tvFill);
 
     // Stage Footlights
-    this.footlight = new THREE.PointLight(0xff9900, 2.2, 8);
+    this.footlight = new THREE.PointLight(0xff9900, 2.8, 10);
     this.footlight.position.set(0, -1.4, 3.5);
     this.scene.add(this.footlight);
   }
@@ -182,14 +188,14 @@ export class SceneManager {
     }
     if (revealed) {
       // Cinematic zoom into the unblurred reveal + camera impact shake
-      this.targetCameraPos.set(0, 1.4, 5.0);
+      this.targetCameraPos.set(0, 1.1, 4.6);
       this.cameraShakeIntensity = 0.15;
       if (this.currentModel && this.currentModel.userData && typeof this.currentModel.userData.onReveal === 'function') {
         this.currentModel.userData.onReveal();
       }
     } else {
       // Wide overview showing stage, pistons, and TVs
-      this.targetCameraPos.set(0, 1.8, 7.8);
+      this.targetCameraPos.set(0, 1.3, 6.6);
     }
   }
 

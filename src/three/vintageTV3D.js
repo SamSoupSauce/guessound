@@ -1,14 +1,34 @@
 import * as THREE from 'three';
 
 export class VintageTV3D {
-  constructor(options = {}) {
+  constructor(sceneOrOptions = {}, maybeOptions = {}) {
+    let options = {};
+    if (sceneOrOptions && (sceneOrOptions.isScene || sceneOrOptions.type === 'Scene')) {
+      options = maybeOptions || {};
+    } else {
+      options = sceneOrOptions || {};
+    }
+
     this.group = new THREE.Group();
     this.group.name = options.name || 'vintageTV';
-    this.x = options.x || 0;
-    this.y = options.y || 0;
-    this.z = options.z || 0;
-    this.scale = options.scale || 1.0;
-    this.rotationY = options.rotationY || 0;
+
+    if (options.position) {
+      this.x = options.position.x || 0;
+      this.y = options.position.y || 0;
+      this.z = options.position.z || 0;
+    } else {
+      this.x = options.x || 0;
+      this.y = options.y || 0;
+      this.z = options.z || 0;
+    }
+
+    this.scale = typeof options.scale === 'number' ? options.scale : 1.0;
+
+    if (options.rotation) {
+      this.rotationY = options.rotation.y !== undefined ? options.rotation.y : (options.rotationY || 0);
+    } else {
+      this.rotationY = options.rotationY || 0;
+    }
 
     this.videoElement = null;
     this.videoTexture = null;
@@ -21,7 +41,7 @@ export class VintageTV3D {
     this.canvasTexture.magFilter = THREE.LinearFilter;
 
     this.currentThemeData = {
-      title: 'SEXERCISE TV',
+      title: 'GUESSOUND TV',
       category: 'FOLEY MYSTERY',
       icon: '🎙️',
       color: '#ffbe0b',
