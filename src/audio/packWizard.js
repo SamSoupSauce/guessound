@@ -3,6 +3,7 @@ import { soundEngine } from './soundEngine.js';
 import { convertFileToBase64, convertAudioUrlToBase64 } from './base64Audio.js';
 import { googleAuth } from '../auth/googleAuth.js';
 import { ThemeSceneEngine } from '../three/themeSceneEngine.js';
+import { GlbManager } from '../three/glbManager.js';
 import confetti from 'canvas-confetti';
 
 export const MAX_PACK_BYTES = 100 * 1024 * 1024; // 100 Megabytes
@@ -20,6 +21,7 @@ export class SoundPackWizard {
       questions: [],
     };
     this.currentBase64Audio = null;
+    this.currentBase64Glb = null;
     this.onPackSavedCallback = null;
     this.onPlayTestCallback = null;
     this.onInspect3DCallback = null;
@@ -75,6 +77,9 @@ export class SoundPackWizard {
     this.inputQCategory = document.getElementById('wiz-q-category');
     this.inputQHint = document.getElementById('wiz-q-hint');
     this.selectQScene = document.getElementById('wiz-q-scene');
+    this.inputQGlbFile = document.getElementById('wiz-q-glb-file');
+    this.badgeQGlb = document.getElementById('wiz-q-glb-badge');
+    this.btnBakeGlb = document.getElementById('btn-wiz-bake-glb');
     this.inputQSceneScript = document.getElementById('wiz-q-scene-script');
     this.selectQScriptPreset = document.getElementById('wiz-q-script-preset');
     this.selectQSynth = document.getElementById('wiz-q-synth');
@@ -183,7 +188,9 @@ export class SoundPackWizard {
       title: '',
       category: 'workoutVsDaily',
       soundHint: '',
+      sceneGlb: null,
       sceneModel: scene,
+      sceneScript: null,
       synthPreset: synth,
       audioUrl: null,
       audioSizeBytes: 0,
@@ -206,6 +213,9 @@ export class SoundPackWizard {
     this.packData.questions.forEach((q) => {
       if (q.audioUrl && typeof q.audioUrl === 'string') {
         bytes += q.audioUrl.length; // Base64 character bytes
+      }
+      if (q.sceneGlb && typeof q.sceneGlb === 'string') {
+        bytes += q.sceneGlb.length; // Base64 GLB character bytes
       }
       bytes += (q.title?.length || 0) * 2;
       bytes += (q.soundHint?.length || 0) * 2;
@@ -446,6 +456,67 @@ export class SoundPackWizard {
       });
     }
 
+    // GLB 3D Binary File Upload with Budget Limit
+    if (this.inputQGlbFile) {
+      this.inputQGlbFile.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > MAX_PACK_BYTES) {
+          alert(`GLB file size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds the 100 MB maximum pack limit!`);
+          this.inputQGlbFile.value = '';
+          return;
+        }
+
+        try {
+          if (this.badgeQGlb) {
+            this.badgeQGlb.style.display = 'inline-flex';
+            this.badgeQGlb.textContent = '⏳ Encoding GLB Binary...';
+          }
+          const b64Glb = await GlbManager.readFileToGlbBase64(file);
+          this.currentBase64Glb = b64Glb;
+          this.packData.questions[this.packData.currentQuestionIndex].sceneGlb = b64Glb;
+          if (this.badgeQGlb) {
+            const mb = (file.size / (1024 * 1024)).toFixed(2);
+            this.badgeQGlb.textContent = `📦 ${file.name} (${mb} MB GLB)`;
+          }
+          this.updateSizeBudgetUI();
+          soundEngine.playClick();
+        } catch (err) {
+          alert('GLB load failed: ' + err.message);
+          if (this.badgeQGlb) this.badgeQGlb.style.display = 'none';
+        }
+      });
+    }
+
+    // Bake Current Procedural / Scripted 3D Scene into Portable GLB Binary
+    if (this.btnBakeGlb) {
+      this.btnBakeGlb.addEventListener('click', async () => {
+        this._saveCurrentForm();
+        const currentQ = this.packData.questions[this.packData.currentQuestionIndex];
+        if (!currentQ) return;
+        try {
+          if (this.badgeQGlb) {
+            this.badgeQGlb.style.display = 'inline-flex';
+            this.badgeQGlb.textContent = '⏳ Baking 3D to GLB Binary...';
+          }
+          const bakedGlb = await ThemeSceneEngine.exportQuestionToGlb(currentQ);
+          this.currentBase64Glb = bakedGlb;
+          currentQ.sceneGlb = bakedGlb;
+          if (this.badgeQGlb) {
+            const kb = (bakedGlb.length / 1024).toFixed(0);
+            this.badgeQGlb.textContent = `📦 Baked GLB (${kb} KB)`;
+          }
+          this.updateSizeBudgetUI();
+          soundEngine.playCorrect();
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        } catch (err) {
+          alert('Bake GLB failed: ' + err.message);
+          if (this.badgeQGlb) this.badgeQGlb.style.display = 'none';
+        }
+      });
+    }
+
     // Custom 3D JavaScript Scene Script Preset Selector
     if (this.selectQScriptPreset && this.inputQSceneScript) {
       this.selectQScriptPreset.addEventListener('change', () => {
@@ -623,6 +694,17 @@ export class SoundPackWizard {
       }
     }
 
+    this.currentBase64Glb = q.sceneGlb || null;
+    if (this.badgeQGlb) {
+      if (this.currentBase64Glb && this.currentBase64Glb.length > 50) {
+        const kb = (this.currentBase64Glb.length / 1024).toFixed(0);
+        this.badgeQGlb.style.display = 'inline-flex';
+        this.badgeQGlb.textContent = `📦 Binary GLB Attached (${kb} KB)`;
+      } else {
+        this.badgeQGlb.style.display = 'none';
+      }
+    }
+
     this.inputOpt0.value = q.options[0] || '';
     this.inputOpt1.value = q.options[1] || '';
     this.inputOpt2.value = q.options[2] || '';
@@ -677,12 +759,15 @@ export class SoundPackWizard {
     const correctVal = parseInt(document.querySelector('input[name="wiz-correct"]:checked')?.value || '0', 10);
     const audioUrlVal = this.inputQAudioUrl.value.trim();
     const finalAudio = this.currentBase64Audio || (audioUrlVal.length > 0 ? audioUrlVal : null);
+    const existingGlb = this.packData.questions[this.packData.currentQuestionIndex]?.sceneGlb || null;
+    const finalGlb = this.currentBase64Glb || existingGlb;
 
     return {
       id: this.packData.questions[this.packData.currentQuestionIndex]?.id || `wiz_q_${Date.now()}`,
       title: this.inputQTitle.value.trim() || `Sound Riddle #${this.packData.currentQuestionIndex + 1}`,
       category: this.inputQCategory.value,
       soundHint: this.inputQHint.value.trim() || 'Listen closely to the audio...',
+      sceneGlb: finalGlb,
       sceneModel: this.selectQScene.value,
       sceneScript: this.inputQSceneScript ? this.inputQSceneScript.value.trim() || null : null,
       synthPreset: this.selectQSynth.value,

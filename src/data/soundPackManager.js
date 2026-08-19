@@ -919,6 +919,7 @@ class SoundPackManager {
           revealTitle: s.revealTitle || s.title,
           revealExplanation: s.revealExplanation || 'No explanation provided.',
           funFact: s.funFact || 'Audio foley trivia.',
+          sceneGlb: s.sceneGlb || null,
           sceneModel: s.sceneModel || 'pool_flamingo',
           sceneScript: s.sceneScript || null,
           scene3D: s.scene3D || null,
@@ -952,6 +953,32 @@ class SoundPackManager {
     }
 
     return importedList;
+  }
+
+  /**
+   * Bakes all procedural or scripted 3D models in a pack into portable Base64 GLB binaries.
+   * @param {string} packId
+   * @returns {Promise<Object>}
+   */
+  async bakePackGlbs(packId) {
+    const pack = this.packs.find((p) => p.id === packId) || this.getActivePack();
+    if (!pack) return null;
+
+    const { ThemeSceneEngine } = await import('../three/themeSceneEngine.js');
+    for (const sound of pack.sounds) {
+      if (!sound.sceneGlb || sound.sceneGlb.length < 50) {
+        try {
+          sound.sceneGlb = await ThemeSceneEngine.exportQuestionToGlb(sound);
+        } catch (err) {
+          console.warn(`[SoundPackManager] Failed baking GLB for sound "${sound.id}":`, err);
+        }
+      }
+    }
+
+    pack.revision = (pack.revision || 1) + 1;
+    pack.updatedAt = Date.now();
+    this.save();
+    return pack;
   }
 
   exportPackToJSON(packId) {

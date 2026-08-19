@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { SceneModelFactory } from './sceneModels.js';
+import { GlbManager } from './glbManager.js';
 
 /**
  * ThemeSceneEngine:
  * Dynamic 3D Scene Runtime that loads geometry, alignment, materials, and live animations
- * entirely from theme definitions and question JavaScript scripts or 3D JSON specifications.
+ * from standard GLB objects, theme definitions, JavaScript scripts, or procedural models.
  */
 export class ThemeSceneEngine {
   /**
@@ -22,7 +23,7 @@ export class ThemeSceneEngine {
     }
 
     // If target is a pack with sounds, use the first sound's definition
-    if (Array.isArray(target.sounds) && target.sounds.length > 0 && !target.sceneModel && !target.sceneScript && !target.scene3D) {
+    if (Array.isArray(target.sounds) && target.sounds.length > 0 && !target.sceneGlb && !target.sceneModel && !target.sceneScript && !target.scene3D) {
       target = target.sounds[0];
     }
 
@@ -30,7 +31,50 @@ export class ThemeSceneEngine {
     const modelKey = target.sceneModel || 'pool_flamingo';
     group.name = `theme_scene_${target.id || modelKey}`;
 
-    // 1. Check for Direct Custom JavaScript Scene Script
+    // 1. Check for Standard Portable Binary GLB Object (sceneGlb)
+    if (target.sceneGlb && typeof target.sceneGlb === 'string' && target.sceneGlb.trim().length > 0) {
+      const glbSource = target.sceneGlb.trim();
+      let innerGroup = null;
+      let mixer = null;
+
+      GlbManager.loadGlb(glbSource, {
+        targetSize: target.targetSize || 2.4,
+        name: `glb_${target.id || modelKey}`,
+      })
+        .then((result) => {
+          innerGroup = result.group;
+          mixer = result.mixer;
+          group.add(innerGroup);
+        })
+        .catch((err) => {
+          console.warn(`[ThemeSceneEngine] Failed loading sceneGlb for "${target.id || modelKey}", falling back to procedural model:`, err);
+          const fallback = SceneModelFactory.createModel(modelKey);
+          group.add(fallback);
+          group.userData.update = fallback.userData.update;
+          group.userData.dispose = fallback.userData.dispose;
+        });
+
+      group.userData.update = (time, audioVol, delta, freqData, isRevealed) => {
+        if (innerGroup && innerGroup.userData && typeof innerGroup.userData.update === 'function') {
+          innerGroup.userData.update(time, audioVol, delta, freqData, isRevealed);
+        }
+      };
+      group.userData.dispose = () => {
+        if (innerGroup && innerGroup.userData && typeof innerGroup.userData.dispose === 'function') {
+          innerGroup.userData.dispose();
+        }
+      };
+      group.userData.onReveal = () => {
+        if (innerGroup) {
+          innerGroup.scale.setScalar(1.2);
+          setTimeout(() => innerGroup && innerGroup.scale.setScalar(1.0), 300);
+        }
+      };
+      group.userData.revision = target.revision || 1;
+      return group;
+    }
+
+    // 2. Check for Direct Custom JavaScript Scene Script
     if (target.sceneScript && typeof target.sceneScript === 'string' && target.sceneScript.trim().length > 0) {
       try {
         const lifecycle = this.executeSceneScript(target.sceneScript, group, context);
@@ -277,5 +321,22 @@ return {
   }
 };`;
     }
+  }
+
+  /**
+   * Bakes any question or theme's 3D scene into a standalone Base64 GLB Data URI.
+   * @param {Object} questionOrTheme
+   * @returns {Promise<string>} Base64 GLB string
+   */
+  static async exportQuestionToGlb(questionOrTheme) {
+    if (questionOrTheme && questionOrTheme.sceneGlb && typeof questionOrTheme.sceneGlb === 'string' && questionOrTheme.sceneGlb.length > 50) {
+      return questionOrTheme.sceneGlb;
+    }
+    const tempGroup = new THREE.Group();
+    const modelKey = (questionOrTheme && questionOrTheme.sceneModel) || 'pool_flamingo';
+    const model = SceneModelFactory.createModel(modelKey);
+    tempGroup.add(model);
+    const glbDataUri = await GlbManager.exportToGlbBase64(tempGroup);
+    return glbDataUri;
   }
 }
