@@ -14,7 +14,7 @@ class SoundEngine {
   init() {
     if (this.ctx) return;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AudioCtx();
+    this.ctx = new AudioCtx({ latencyHint: 'interactive' });
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 128;
     this.analyser.smoothingTimeConstant = 0.8;
@@ -24,11 +24,36 @@ class SoundEngine {
 
     this.masterGain.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
+
+    // Global Android Chrome / Mobile Safari Touch Audio Unlocker
+    const unlock = () => {
+      if (this.ctx) {
+        if (this.ctx.state === 'suspended' || this.ctx.state === 'interrupted') {
+          this.ctx.resume().catch(() => {});
+        }
+        try {
+          const buffer = this.ctx.createBuffer(1, 1, 22050);
+          const source = this.ctx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(this.ctx.destination);
+          source.start(0);
+        } catch {}
+      }
+      ['touchstart', 'touchend', 'pointerdown', 'click'].forEach((evt) => {
+        window.removeEventListener(evt, unlock);
+        document.removeEventListener(evt, unlock);
+      });
+    };
+
+    ['touchstart', 'touchend', 'pointerdown', 'click'].forEach((evt) => {
+      window.addEventListener(evt, unlock, { once: true, passive: true });
+      document.addEventListener(evt, unlock, { once: true, passive: true });
+    });
   }
 
   resume() {
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && (this.ctx.state === 'suspended' || this.ctx.state === 'interrupted')) {
+      this.ctx.resume().catch(() => {});
     }
   }
 

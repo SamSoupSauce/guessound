@@ -23,12 +23,27 @@ export class SceneManager {
     this.cameraShakeIntensity = 0;
     this.isRevealedState = false;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: !isMobile,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
     this.renderer.setSize(this.width, this.height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.75 : 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.4;
     this.container.appendChild(this.renderer.domElement);
+
+    // Mobile / Android WebGL Context Restoration
+    this.renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn('[SceneManager] WebGL Context Lost on mobile device.');
+    });
+    this.renderer.domElement.addEventListener('webglcontextrestored', () => {
+      console.log('[SceneManager] WebGL Context Restored. Reinitializing scene...');
+      this.onWindowResize();
+    });
 
     this.clock = new THREE.Clock();
     this.currentModel = null;
@@ -87,25 +102,54 @@ export class SceneManager {
     this.previousMousePosition = { x: 0, y: 0 };
     this.rotVelocity = { x: 0, y: 0 };
 
-    this.container.addEventListener('pointerdown', (e) => {
+    const onStart = (clientX, clientY) => {
       this.isDragging = true;
-      this.previousMousePosition = { x: e.clientX, y: e.clientY };
-    });
+      this.previousMousePosition = { x: clientX, y: clientY };
+    };
 
-    window.addEventListener('pointerup', () => {
-      this.isDragging = false;
-    });
-
-    window.addEventListener('pointermove', (e) => {
+    const onMove = (clientX, clientY) => {
       if (!this.isDragging) return;
-      const deltaX = e.clientX - this.previousMousePosition.x;
-      const deltaY = e.clientY - this.previousMousePosition.y;
+      const deltaX = clientX - this.previousMousePosition.x;
+      const deltaY = clientY - this.previousMousePosition.y;
 
-      this.rotVelocity.y += deltaX * 0.003;
-      this.rotVelocity.x += deltaY * 0.003;
+      this.rotVelocity.y += deltaX * 0.0035;
+      this.rotVelocity.x += deltaY * 0.0035;
 
-      this.previousMousePosition = { x: e.clientX, y: e.clientY };
-    });
+      this.previousMousePosition = { x: clientX, y: clientY };
+    };
+
+    const onEnd = () => {
+      this.isDragging = false;
+    };
+
+    // Pointer Events (Mouse + Stylus + Primary Touch)
+    this.container.addEventListener('pointerdown', (e) => onStart(e.clientX, e.clientY));
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
+
+    // Touch Events for Android & Mobile Safari
+    this.container.addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches.length === 1) {
+          onStart(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      },
+      { passive: true }
+    );
+
+    window.addEventListener(
+      'touchmove',
+      (e) => {
+        if (this.isDragging && e.touches.length === 1) {
+          onMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      },
+      { passive: true }
+    );
+
+    window.addEventListener('touchend', onEnd, { passive: true });
+    window.addEventListener('touchcancel', onEnd, { passive: true });
   }
 
   loadThemeScene(questionOrTheme, packTheme = {}) {

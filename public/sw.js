@@ -1,4 +1,4 @@
-const CACHE_NAME = 'guessound-pwa-v1.1.0';
+const CACHE_NAME = 'guessound-pwa-v1.2.0';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,25 @@ const PRECACHE_ASSETS = [
   '/icons/icon-maskable.png',
   '/icons/apple-touch-icon.png',
   '/icons/icon.svg',
+  '/models/pool_flamingo.glb',
+  '/models/flip_flops.glb',
+  '/models/stubbed_toe.glb',
+  '/models/squeaky_dog.glb',
+  '/models/sizzling_bacon.glb',
+  '/models/massage_gun.glb',
+  '/models/bike_pump.glb',
+  '/models/resistance_band.glb',
+  '/models/mac_and_cheese.glb',
+  '/models/dog_tippytaps.glb',
+  '/models/laser_blaster.glb',
+  '/models/chainsaw_engine.glb',
+  '/models/soda_can.glb',
+  '/models/cat_hiss.glb',
+  '/models/kettlebell_thud.glb',
+  '/models/woodpecker_tree.glb',
+  '/models/water_slide.glb',
+  '/models/warp_core.glb',
+  '/models/spring_pad.glb',
 ];
 
 // Install Event - Pre-cache core shell
