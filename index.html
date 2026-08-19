@@ -242,8 +242,8 @@
           <div style="display:flex; align-items:center; gap:12px;">
             <span style="font-size:2.2rem;">🧪</span>
             <div>
-              <h2 class="forge-main-title">1920s STEAMPUNK PACK FORGE STUDIO</h2>
-              <p class="forge-main-subtitle">Build custom modular sound decks question-by-question with arbitrary N riddles and custom 3D scenes.</p>
+              <h2 class="forge-main-title">GUESSOUND GAME PACK FORGE STUDIO</h2>
+              <p class="forge-main-subtitle">Build custom modular Guessound game packs with arbitrary N riddles, audio synthesis, questions, and interactive 3D scenes.</p>
             </div>
           </div>
 
@@ -693,15 +693,15 @@
   <div id="packs-modal" class="modal-backdrop">
     <div class="modal-card packs-manager-card">
       <div class="modal-header">
-        <h2>📦 SOUND PACK MANAGER</h2>
+        <h2>📦 GUESSOUND GAME PACK MANAGER</h2>
         <button class="close-btn" id="btn-close-packs">✕</button>
       </div>
       <p class="modal-desc">
-        Select, import, export, or create modular sound & answer packs stored in localStorage!
+        Select, import, export, or forge modular Guessound game packs (audio + 3D scenes + questions)!
       </p>
 
       <div class="packs-toolbar">
-        <button class="btn-primary" id="btn-packs-open-lab" style="font-size:0.8rem; padding:8px 14px;">🧪 Forge New Pack in Lab</button>
+        <button class="btn-primary" id="btn-packs-open-lab" style="font-size:0.8rem; padding:8px 14px;">🧪 Forge New Pack in Studio</button>
         <button class="btn-secondary" id="btn-open-import">📥 Import JSON Pack</button>
         <button class="btn-secondary" id="btn-export-active">📤 Export Active Pack</button>
         <button class="btn-secondary" id="btn-reset-packs" style="color:var(--error); border-color:rgba(231,29,54,0.4);">🔄 Reset Defaults</button>
@@ -718,10 +718,10 @@
   <div id="import-modal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-header">
-        <h2>📥 IMPORT SOUND PACK</h2>
+        <h2>📥 IMPORT GUESSOUND GAME PACK</h2>
         <button class="close-btn" id="btn-close-import">✕</button>
       </div>
-      <p class="modal-desc">Upload a `.json` sound pack file or paste raw JSON below:</p>
+      <p class="modal-desc">Upload a `.json` Guessound game pack file or paste raw JSON below:</p>
 
       <div class="form-group" style="margin-bottom:12px;">
         <label>UPLOAD JSON FILE</label>
@@ -786,8 +786,8 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:1.6rem;">🧪</span>
           <div>
-            <h2 style="margin:0; font-size:1.35rem; color:var(--primary);">CUSTOM SOUND LAB & PACK FORGE</h2>
-            <p class="modal-desc" style="margin:0;">Create custom sound packs question-by-question or add riddles to existing packs!</p>
+            <h2 style="margin:0; font-size:1.35rem; color:var(--primary);">GUESSOUND GAME PACK FORGE</h2>
+            <p class="modal-desc" style="margin:0;">Craft custom Guessound game packs with audio riddles, 4-choice questions, and interactive 3D scenes.</p>
           </div>
         </div>
         <button class="close-btn" id="btn-close-lab">✕</button>
@@ -795,8 +795,8 @@
 
       <!-- Mode Selector Tabs: Full Pack Creator vs Quick Add Sound -->
       <div class="lab-mode-tabs" id="lab-mode-tabs">
-        <button type="button" class="lab-mode-tab active" id="tab-lab-create-pack">📦 Create Full Sound Pack</button>
-        <button type="button" class="lab-mode-tab" id="tab-lab-single-sound">➕ Quick Add Single Sound</button>
+        <button type="button" class="lab-mode-tab active" id="tab-lab-create-pack">📦 Create Full Game Pack</button>
+        <button type="button" class="lab-mode-tab" id="tab-lab-single-sound">➕ Quick Add Single Riddle</button>
       </div>
 
       <!-- ================================================================= -->
