@@ -612,6 +612,10 @@ function onSoundPackChanged() {
   const activePack = soundPackManager.getActivePack();
   if (homeView && homeView.classList.contains('active')) {
     sceneManager.loadThemeScene(activePack.sounds[0] || activePack, activePack);
+    // Update stage to use pack-specific map if available
+    if (sceneManager.stage && typeof sceneManager.stage.setPackId === 'function') {
+      sceneManager.stage.setPackId(activePack.id);
+    }
   }
   populateLabPackOptions();
 }

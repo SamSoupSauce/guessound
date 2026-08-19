@@ -1,8 +1,44 @@
-import * as THREE from 'three';
+import { GlbManager } from './glbManager.js';
+
+  setPackId(packId) {
+    if (this.packId === packId) return;
+    this.packId = packId;
+    const primaryPath = `/maps/${packId}.glb`;
+    const fallbackPath = `/public/models/${packId}.glb`;
+    const load = (path) => GlbManager.loadGlb(path);
+    load(primaryPath)
+      .then(({ group }) => this._applyPackModel(group))
+      .catch(() => {
+        load(fallbackPath)
+          .then(({ group }) => this._applyPackModel(group))
+          .catch(() => {
+            this._clearPackModel();
+          });
+      });
+  }
+
+  _applyPackModel(group) {
+    if (this.packModel) {
+      this.group.remove(this.packModel);
+    }
+    this.packModel = group;
+    this.group.add(this.packModel);
+    // Hide default stage geometry
+    this.group.visible = false;
+  }
+
+  _clearPackModel() {
+    if (this.packModel) {
+      this.group.remove(this.packModel);
+      this.packModel = null;
+    }
+    // Show default stage if no pack model
+    this.group.visible = true;
+  }
 import { VintageTV3D } from './vintageTV3D.js';
 
 export class SteampunkStage3D {
-  constructor(scene) {
+    constructor(scene, packId = 'default') {
     this.scene = scene;
     this.group = new THREE.Group();
     this.group.name = 'steampunkStage';

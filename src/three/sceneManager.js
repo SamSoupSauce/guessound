@@ -3,7 +3,11 @@ import { SceneModelFactory } from './sceneModels.js';
 import { ThemeSceneEngine } from './themeSceneEngine.js';
 import { MysteryShield3D } from './mysteryShield3D.js';
 import { AudioVisualizer3D } from './audioVisualizer3D.js';
+import { GlbManager } from './glbManager.js';
 import { SteampunkStage3D } from './steampunkStage3D.js';
+
+
+
 
 export class SceneManager {
   constructor(canvasContainer) {
@@ -49,7 +53,7 @@ export class SceneManager {
     this.currentModel = null;
 
     this._setupEnvironment();
-    this.stage = new SteampunkStage3D(this.scene);
+    this.stage = new SteampunkStage3D(this.scene, 'default');
     this.shield = new MysteryShield3D(this.scene);
     this.visualizer = new AudioVisualizer3D(this.scene);
 
