@@ -50,6 +50,7 @@ export const SOUND_DATABASE = [
       'No gym required! Just pure lung power trying to manually inflate a 6-foot inflatable pink flamingo before pool party guests arrive.',
     funFact:
       'Blowing up a pool float burns roughly 15 calories and 100% of your remaining dignity.',
+    sceneGlb: '/models/pool_flamingo.glb',
     sceneModel: 'pool_flamingo',
     difficulty: 1,
   },
@@ -71,6 +72,7 @@ export const SOUND_DATABASE = [
       'That lightning-fast cadence wasn\'t Muhammad Ali on the speedbag—it was someone in soaked flip-flops rushing across tiled flooring!',
     funFact:
       'The iconic "flip-flop" sound produces acoustic frequencies between 300Hz and 1200Hz upon heel impact.',
+    sceneGlb: '/models/flip_flops.glb',
     sceneModel: 'flip_flops',
     difficulty: 1,
   },
@@ -92,6 +94,7 @@ export const SOUND_DATABASE = [
       'The decibel level matched a world-record powerlifter, but it was just a wooden coffee table corner meeting an innocent toe in the dark.',
     funFact:
       'Stubbing your toe triggers rapid pain signals along A-delta nerve fibers at over 40 mph!',
+    sceneGlb: '/models/stubbed_toe.glb',
     sceneModel: 'stubbed_toe',
     difficulty: 2,
   },
@@ -113,6 +116,7 @@ export const SOUND_DATABASE = [
       'An excited golden retriever discovering a fresh squeaky toy and testing its structural integrity at 180 squeaks per minute.',
     funFact:
       'Dogs love squeaky toys because the sound mimics small game instincts in their ancestral biology.',
+    sceneGlb: '/models/squeaky_dog.glb',
     sceneModel: 'squeaky_dog',
     difficulty: 1,
   },
@@ -134,6 +138,7 @@ export const SOUND_DATABASE = [
       'The ultimate audio illusion: skillet bacon sizzle shares an acoustic sound spectrum nearly identical to heavy rain on a rooftop!',
     funFact:
       'Foley sound designers in Hollywood frequently use sizzling bacon audio to simulate rainstorms and forest fires.',
+    sceneGlb: '/models/sizzling_bacon.glb',
     sceneModel: 'sizzling_bacon',
     difficulty: 2,
   },
@@ -155,6 +160,7 @@ export const SOUND_DATABASE = [
       'Operating at 3200 percussions per minute, this handheld recovery beast shakes everything in a 5-meter radius.',
     funFact:
       'Percussive therapy was popularized in 2008 by a chiropractor recovering from a motorcycle injury.',
+    sceneGlb: '/models/massage_gun.glb',
     sceneModel: 'massage_gun',
     difficulty: 2,
   },
@@ -176,6 +182,7 @@ export const SOUND_DATABASE = [
       'Racing against time with a miniature 6-inch hand pump before the morning commute bus arrives.',
     funFact:
       'Pumping a standard mountain bike tire with a mini hand pump takes between 300 to 500 hand strokes!',
+    sceneGlb: '/models/bike_pump.glb',
     sceneModel: 'bike_pump',
     difficulty: 2,
   },
@@ -197,6 +204,7 @@ export const SOUND_DATABASE = [
       'The treacherous gym rubber band slipped off the sneaker sole and catapulted straight into the living room blinds!',
     funFact:
       'Snapping elastic bands can reach exit velocities of over 60 mph (96 km/h).',
+    sceneGlb: '/models/resistance_band.glb',
     sceneModel: 'resistance_band',
     difficulty: 1,
   },
@@ -218,6 +226,7 @@ export const SOUND_DATABASE = [
       'Nothing scandalous here—just 4 cups of melted cheddar and heavy cream being energetically folded into hot elbow pasta.',
     funFact:
       'Mac and cheese audio is commonly ranked as one of the most polarizing ASMR triggers in sound testing studies.',
+    sceneGlb: '/models/mac_and_cheese.glb',
     sceneModel: 'mac_and_cheese',
     difficulty: 1,
   },
@@ -239,6 +248,7 @@ export const SOUND_DATABASE = [
       'When the kibble bowl clinks, those doggie toenails ignite into an Olympic-level tap dance celebration.',
     funFact:
       'Dogs tap dance their front paws (known as "happy feet") when dopamine rushes through their anticipation receptors.',
+    sceneGlb: '/models/dog_tippytaps.glb',
     sceneModel: 'dog_tippytaps',
     difficulty: 1,
   },

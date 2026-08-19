@@ -1,8 +1,8 @@
 import { SOUND_CATEGORIES, SOUND_DATABASE } from './soundDatabase.js';
 
 export const PACK_SCHEMA_VERSION = '1.1.0';
-export const DEFAULT_PACK_REVISION = 3;
-export const CACHE_VERSION_KEY = 'guessound_cache_version_v1_1_2';
+export const DEFAULT_PACK_REVISION = 4;
+export const CACHE_VERSION_KEY = 'guessound_cache_version_v1_1_3';
 
 const STORAGE_PACKS_KEY = 'guessound_sound_packs_v2';
 const STORAGE_ACTIVE_PACK_KEY = 'guessound_active_pack_id_v2';
@@ -16,7 +16,7 @@ export const BUILTIN_PACKS = [
     description: 'The iconic deceptive sounds: workout grunts vs pool floats, flip-flops, stubbed toes, and rubber ducks.',
     author: 'Sexercise Team',
     version: '1.1.0',
-    revision: 2,
+    revision: 4,
     updatedAt: 1771500000000,
     icon: '🎧',
     timerSeconds: 15,
@@ -30,7 +30,7 @@ export const BUILTIN_PACKS = [
     description: 'Sizzling bacon vs rainstorms, cheesy mac churn, soda can fizz, and mouth-watering acoustic tricks.',
     author: 'Chef Sonic',
     version: '1.1.0',
-    revision: 2,
+    revision: 4,
     updatedAt: 1771500000000,
     icon: '🍳',
     timerSeconds: 14,
@@ -58,7 +58,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Skillet bacon sizzle shares an acoustic frequency spectrum nearly identical to heavy rain on a metal roof!',
         funFact: 'Foley sound artists often record sizzling bacon when films need rainstorm soundscapes.',
-        sceneModel: 'sizzling_bacon',
+        sceneGlb: '/models/sizzling_bacon.glb',
+    sceneModel: 'sizzling_bacon',
         difficulty: 1,
       },
       {
@@ -79,7 +80,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Nothing scandalous—just melted cheddar and heavy cream folded vigorously into hot elbow pasta.',
         funFact: 'Mac and cheese audio ranks as one of the most polarizing ASMR triggers worldwide.',
-        sceneModel: 'mac_and_cheese',
+        sceneGlb: '/models/mac_and_cheese.glb',
+    sceneModel: 'mac_and_cheese',
         difficulty: 1,
       },
       {
@@ -100,7 +102,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Aluminum pull-tab release venting 45 PSI of carbon dioxide micro-bubbles.',
         funFact: 'The audible pop comes from the sudden speed-of-sound pressure equalization inside the can.',
-        sceneModel: 'soda_can',
+        sceneGlb: '/models/soda_can.glb',
+    sceneModel: 'soda_can',
         difficulty: 1,
       },
       {
@@ -121,7 +124,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Injecting dry steam at 1.5 bars of pressure into cold whole milk to create microfoam for a latte.',
         funFact: 'Steam wands heat milk from 4°C to 65°C in under 12 seconds.',
-        sceneModel: 'bike_pump',
+        sceneGlb: '/models/bike_pump.glb',
+    sceneModel: 'bike_pump',
         difficulty: 2,
       },
       {
@@ -142,7 +146,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'A Japanese santoku knife slicing a bundle of green onions at 300 cuts per minute.',
         funFact: 'Professional sushi chefs practice blindfolded chopping rhythm to maintain perfect slice widths.',
-        sceneModel: 'dog_tippytaps',
+        sceneGlb: '/models/dog_tippytaps.glb',
+    sceneModel: 'dog_tippytaps',
         difficulty: 2,
       },
     ],
@@ -153,7 +158,7 @@ export const BUILTIN_PACKS = [
     description: 'High-intensity athletic blunders, snapping resistance bands, heavy kettlebell drops, and PR screams.',
     author: 'Iron Foley',
     version: '1.1.0',
-    revision: 2,
+    revision: 4,
     updatedAt: 1771500000000,
     icon: '💪',
     timerSeconds: 12,
@@ -181,7 +186,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'The treacherous gym rubber band slipped off the sneaker sole and catapulted into the living room blinds!',
         funFact: 'Snapping elastic bands can reach exit velocities of over 60 mph (96 km/h).',
-        sceneModel: 'resistance_band',
+        sceneGlb: '/models/resistance_band.glb',
+    sceneModel: 'resistance_band',
         difficulty: 1,
       },
       {
@@ -202,7 +208,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Operating at 3200 percussions per minute, this handheld recovery beast shakes everything in a 5-meter radius.',
         funFact: 'Percussive therapy was popularized in 2008 by a chiropractor recovering from a motorcycle injury.',
-        sceneModel: 'massage_gun',
+        sceneGlb: '/models/massage_gun.glb',
+    sceneModel: 'massage_gun',
         difficulty: 1,
       },
       {
@@ -223,7 +230,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'The decibel level matched a world-record powerlifter, but it was just a wooden coffee table corner meeting an innocent toe.',
         funFact: 'Stubbing your toe triggers rapid pain signals along A-delta nerve fibers at over 40 mph!',
-        sceneModel: 'stubbed_toe',
+        sceneGlb: '/models/stubbed_toe.glb',
+    sceneModel: 'stubbed_toe',
         difficulty: 2,
       },
       {
@@ -244,7 +252,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Grip fatigue set in on rep 20 of kettlebell swings, creating a mini seismic event in the downstairs apartment.',
         funFact: 'Gym rubber flooring absorbs only about 40% of peak kinetic impact energy.',
-        sceneModel: 'kettlebell_thud',
+        sceneGlb: '/models/kettlebell_thud.glb',
+    sceneModel: 'kettlebell_thud',
         difficulty: 2,
       },
     ],
@@ -255,7 +264,7 @@ export const BUILTIN_PACKS = [
     description: 'Excited puppy tap dances, angry cat hissing, frantic woodpecker drumming, and animal comedy.',
     author: 'Dr. Beast',
     version: '1.1.0',
-    revision: 2,
+    revision: 4,
     updatedAt: 1771500000000,
     icon: '🐾',
     timerSeconds: 15,
@@ -283,7 +292,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'The exact acoustic signature of a dog who just saw the treat canister open.',
         funFact: 'Canine claw clicks on wood average 1400 Hz acoustic resonance.',
-        sceneModel: 'dog_tippytaps',
+        sceneGlb: '/models/dog_tippytaps.glb',
+    sceneModel: 'dog_tippytaps',
         difficulty: 1,
       },
       {
@@ -304,7 +314,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'A feline defending the couch against the terrifying threat of an innocent robotic vacuum cleaner.',
         funFact: 'Cats mimic snake hissing acoustics as an evolutionary defense mechanism against predators.',
-        sceneModel: 'cat_hiss',
+        sceneGlb: '/models/cat_hiss.glb',
+    sceneModel: 'cat_hiss',
         difficulty: 2,
       },
       {
@@ -325,7 +336,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Pecking at up to 20 strikes per second to establish territory and hunt for wood-boring insects.',
         funFact: 'Woodpecker skulls experience up to 1,200 Gs of deceleration with each strike unharmed.',
-        sceneModel: 'woodpecker_tree',
+        sceneGlb: '/models/woodpecker_tree.glb',
+    sceneModel: 'woodpecker_tree',
         difficulty: 2,
       },
       {
@@ -346,7 +358,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Pure canine obsession testing the durability of a 99-cent yellow squeaker toy.',
         funFact: 'Dogs love squeaky toys because the sound mimics small prey in ancestral hunting instincts.',
-        sceneModel: 'squeaky_dog',
+        sceneGlb: '/models/squeaky_dog.glb',
+    sceneModel: 'squeaky_dog',
         difficulty: 1,
       },
     ],
@@ -357,7 +370,7 @@ export const BUILTIN_PACKS = [
     description: 'High-RPM chainsaw revs, tire pump sprints, pneumatic hiss, and workbench accidents.',
     author: 'Gearhead Foley',
     version: '1.1.0',
-    revision: 2,
+    revision: 4,
     updatedAt: 1771500000000,
     icon: '🚗',
     timerSeconds: 14,
@@ -385,7 +398,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'A two-stroke 50cc engine revving up to 13,000 RPM to trim an overgrown hedge branch.',
         funFact: 'Chainsaw chain teeth travel at over 45 miles per hour.',
-        sceneModel: 'chainsaw_engine',
+        sceneGlb: '/models/chainsaw_engine.glb',
+    sceneModel: 'chainsaw_engine',
         difficulty: 1,
       },
       {
@@ -406,7 +420,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Racing against time to pump 110 PSI before the group weekend bicycle ride departs.',
         funFact: 'Hand pumps generate up to 160 PSI of chamber pressure using human arm power alone.',
-        sceneModel: 'bike_pump',
+        sceneGlb: '/models/bike_pump.glb',
+    sceneModel: 'bike_pump',
         difficulty: 2,
       },
       {
@@ -427,7 +442,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Fumbling the handle and spilling 48 wrenches and sockets across the entire garage.',
         funFact: 'The sound of scattering wrenches produces over 30 distinct resonant harmonic frequencies.',
-        sceneModel: 'kettlebell_thud',
+        sceneGlb: '/models/kettlebell_thud.glb',
+    sceneModel: 'kettlebell_thud',
         difficulty: 2,
       },
     ],
@@ -438,7 +454,7 @@ export const BUILTIN_PACKS = [
     description: 'Vintage laser blasters, space jump pads, warp drive engines, and retro synthesizer mysteries.',
     author: 'Pixel Foley Lab',
     version: '1.1.0',
-    revision: 3,
+    revision: 4,
     updatedAt: 1771500000000,
     icon: '👾',
     timerSeconds: 12,
@@ -465,7 +481,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Sound designers originally created the Star Wars blaster sound by striking metal radio tower guy-wires!',
         funFact: 'High frequencies travel faster along metal wires than low frequencies, creating the iconic "pew" sweep.',
-        sceneModel: 'laser_blaster',
+        sceneGlb: '/models/laser_blaster.glb',
+    sceneModel: 'laser_blaster',
         difficulty: 1,
       },
       {
@@ -486,7 +503,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Continuous sub-harmonic hum of anti-matter magnetic containment drives.',
         funFact: 'Sci-fi spaceship engine hums are often tuned to 50 Hz or 60 Hz to match electrical grid hums.',
-        sceneModel: 'warp_core',
+        sceneGlb: '/models/warp_core.glb',
+    sceneModel: 'warp_core',
         difficulty: 2,
       },
       {
@@ -507,7 +525,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'The classic platformer sound effect of launching a pixel hero across floating platforms.',
         funFact: 'Early video game sound chips were limited to just 4 simultaneous audio channels.',
-        sceneModel: 'spring_pad',
+        sceneGlb: '/models/spring_pad.glb',
+    sceneModel: 'spring_pad',
         difficulty: 1,
       },
     ],
@@ -518,7 +537,7 @@ export const BUILTIN_PACKS = [
     description: 'Water slide splashes, hot deck flip-flops, inflatable pool toys, and beachside acoustic tricks.',
     author: 'Aqua Soundworks',
     version: '1.1.0',
-    revision: 2,
+    revision: 4,
     updatedAt: 1771500000000,
     icon: '🏖️',
     timerSeconds: 15,
@@ -546,7 +565,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Rocketing down a 60-foot enclosed tube flume at 25 mph straight into the splash pool.',
         funFact: 'Water park slide flumes pump over 1,000 gallons of water per minute to reduce friction.',
-        sceneModel: 'water_slide',
+        sceneGlb: '/models/water_slide.glb',
+    sceneModel: 'water_slide',
         difficulty: 1,
       },
       {
@@ -567,7 +587,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Desperately hurrying across blistering hot pool patio stone before burning the soles of your feet.',
         funFact: 'Hot poolside concrete in summer can reach surface temperatures over 140°F (60°C).',
-        sceneModel: 'flip_flops',
+        sceneGlb: '/models/flip_flops.glb',
+    sceneModel: 'flip_flops',
         difficulty: 1,
       },
       {
@@ -588,7 +609,8 @@ export const BUILTIN_PACKS = [
         revealExplanation:
           'Taking 15 minutes of pure lung power to inflate a 6-foot pink flamingo float on the beach.',
         funFact: 'A human lung exhales approximately 0.5 liters of air per normal breath.',
-        sceneModel: 'pool_flamingo',
+        sceneGlb: '/models/pool_flamingo.glb',
+    sceneModel: 'pool_flamingo',
         difficulty: 1,
       },
     ],
