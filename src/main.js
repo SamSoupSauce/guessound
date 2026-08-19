@@ -183,6 +183,21 @@ const btnDismissPwa = document.getElementById('btn-dismiss-pwa');
 const btnConfirmPwaInstall = document.getElementById('btn-confirm-pwa-install');
 const pwaIosInstruction = document.getElementById('pwa-ios-instruction');
 
+// Mobile Header Dropdown Menu Elements
+const btnHeaderMenuToggle = document.getElementById('btn-header-menu-toggle');
+const headerDropdownMenu = document.getElementById('header-dropdown-menu');
+const menuUserProfileBadge = document.getElementById('menu-user-profile-badge');
+const menuUserAvatar = document.getElementById('menu-user-avatar');
+const menuUserName = document.getElementById('menu-user-name');
+const btnMenuSignOut = document.getElementById('btn-menu-sign-out');
+const btnGoogleLoginMenu = document.getElementById('btn-google-login-menu');
+const btnMenuSwitchPack = document.getElementById('btn-menu-switch-pack');
+const menuCurrentPackLabel = document.getElementById('menu-current-pack-label');
+const btnMenuVault = document.getElementById('btn-menu-vault');
+const btnMenuForge = document.getElementById('btn-menu-forge');
+const btnMenuGuide = document.getElementById('btn-menu-guide');
+const btnMenuPwa = document.getElementById('btn-menu-pwa');
+
 // Application State
 let sceneManager = null;
 let gameSession = null;
@@ -316,6 +331,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
   if (btnInstallPwa) {
     btnInstallPwa.style.display = 'inline-flex';
   }
+  if (btnMenuPwa) {
+    btnMenuPwa.style.display = 'flex';
+  }
 
   const dismissed = sessionStorage.getItem('pwa_prompt_dismissed');
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -329,6 +347,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
   if (btnInstallPwa) btnInstallPwa.style.display = 'none';
+  if (btnMenuPwa) btnMenuPwa.style.display = 'none';
   if (pwaInstallModal) pwaInstallModal.classList.remove('active');
   confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 } });
 });
@@ -442,6 +461,15 @@ function onAuthChanged(user) {
       userAvatar.src = user.picture;
       userName.textContent = user.givenName || user.name;
     }
+    // Mobile Dropdown Profile
+    if (menuUserProfileBadge) {
+      menuUserProfileBadge.style.display = 'flex';
+      if (menuUserAvatar) menuUserAvatar.src = user.picture;
+      if (menuUserName) menuUserName.textContent = user.givenName || user.name;
+    }
+    if (btnGoogleLoginMenu) {
+      btnGoogleLoginMenu.style.display = 'none';
+    }
     const btnGoogleLoginHeader = document.getElementById('btn-google-login-header');
     if (btnGoogleLoginHeader) {
       btnGoogleLoginHeader.style.display = 'none';
@@ -474,6 +502,12 @@ function onAuthChanged(user) {
     }
     if (userProfileBadge) {
       userProfileBadge.style.display = 'none';
+    }
+    if (menuUserProfileBadge) {
+      menuUserProfileBadge.style.display = 'none';
+    }
+    if (btnGoogleLoginMenu) {
+      btnGoogleLoginMenu.style.display = 'flex';
     }
     const btnGoogleLoginHeader = document.getElementById('btn-google-login-header');
     if (btnGoogleLoginHeader) {
@@ -558,6 +592,9 @@ function drawHudOscilloscope(freqData, audioVol) {
 function updateActivePackUI() {
   const activePack = soundPackManager.getActivePack();
   headerPackName.textContent = activePack.name;
+  if (menuCurrentPackLabel) {
+    menuCurrentPackLabel.textContent = activePack.name;
+  }
   heroPackIcon.textContent = activePack.icon || '📦';
   heroPackTitle.textContent = activePack.name;
   heroPackMeta.textContent = `${activePack.sounds.length} 3D Riddles • Questions & Sounds • by ${activePack.author || 'Guessound'}`;
@@ -945,8 +982,73 @@ function setupEventListeners() {
   const btnGuideStartGame = document.getElementById('btn-guide-start-game');
   if (btnGuideStartGame) btnGuideStartGame.addEventListener('click', () => guideModal.classList.remove('active'));
 
+  // Mobile Header Dropdown Menu Toggle & Actions
+  const closeMobileMenu = () => {
+    if (headerDropdownMenu) headerDropdownMenu.classList.remove('active');
+    if (btnHeaderMenuToggle) btnHeaderMenuToggle.classList.remove('active');
+  };
+
+  if (btnHeaderMenuToggle) {
+    btnHeaderMenuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isActive = headerDropdownMenu.classList.toggle('active');
+      btnHeaderMenuToggle.classList.toggle('active', isActive);
+      soundEngine.playClick();
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (headerDropdownMenu && headerDropdownMenu.classList.contains('active')) {
+      if (!headerDropdownMenu.contains(e.target) && !btnHeaderMenuToggle?.contains(e.target)) {
+        closeMobileMenu();
+      }
+    }
+  });
+
+  if (btnMenuSwitchPack) {
+    btnMenuSwitchPack.addEventListener('click', () => {
+      closeMobileMenu();
+      openTopicSelector();
+      soundEngine.playClick();
+    });
+  }
+
+  if (btnMenuVault) {
+    btnMenuVault.addEventListener('click', () => {
+      closeMobileMenu();
+      openVault();
+      soundEngine.playClick();
+    });
+  }
+
+  if (btnMenuForge) {
+    btnMenuForge.addEventListener('click', () => {
+      closeMobileMenu();
+      const tabForge = document.getElementById('tab-home-forge');
+      if (tabForge) tabForge.click();
+      soundEngine.playClick();
+    });
+  }
+
+  if (btnMenuGuide) {
+    btnMenuGuide.addEventListener('click', () => {
+      closeMobileMenu();
+      guideModal.classList.add('active');
+      soundEngine.playClick();
+    });
+  }
+
+  if (btnMenuPwa) {
+    btnMenuPwa.addEventListener('click', () => {
+      closeMobileMenu();
+      pwaInstallModal.classList.add('active');
+      soundEngine.playClick();
+    });
+  }
+
   // Google Auth Sign In / Out Handlers
   const handleGoogleAuthClick = () => {
+    closeMobileMenu();
     googleAuth.triggerGoogleSignIn((user) => {
       onAuthChanged(user);
       soundEngine.playCorrect();
@@ -966,8 +1068,20 @@ function setupEventListeners() {
     btnGoogleLoginHeader.addEventListener('click', handleGoogleAuthClick);
   }
 
+  if (btnGoogleLoginMenu) {
+    btnGoogleLoginMenu.addEventListener('click', handleGoogleAuthClick);
+  }
+
   if (btnSignOut) {
     btnSignOut.addEventListener('click', () => {
+      googleAuth.signOut();
+      soundEngine.playClick();
+    });
+  }
+
+  if (btnMenuSignOut) {
+    btnMenuSignOut.addEventListener('click', () => {
+      closeMobileMenu();
       googleAuth.signOut();
       soundEngine.playClick();
     });
