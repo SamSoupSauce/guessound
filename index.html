@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guessound: Steampunk 1920s Sound Game Show</title>
+  <meta name="theme-color" content="#d4af37">
+  <meta name="description" content="Guessound: 1920s Steampunk Foley Sound Mystery Game Show with 3D unblurred reveals and modular sound packs.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Guessound">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+  <!-- Google One-Click Sign In (Google Identity Services) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <!-- 3D Three.js Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="logo-badge" id="btn-home">
+      <span class="logo-icon">📻</span>
+      <span class="logo-text">GUESS<span class="accent-text">OUND</span></span>
+      <span class="version-tag">STEAMPUNK 3D</span>
+    </div>
+
+    <!-- Active Sound Pack Quick Switcher -->
+    <div class="pack-badge-btn" id="btn-packs-nav" title="Switch or Manage Sound Packs">
+      <span class="pack-icon">📦</span>
+      <span class="pack-label" id="header-pack-name">Sexercise (Original)</span>
+      <span class="pack-arrow">▾</span>
+    </div>
+
+    <div class="header-actions">
+      <!-- Google Auth Header Item -->
+      <div id="google-auth-container" class="google-auth-header">
+        <button type="button" class="btn-google-signin-mini" id="btn-google-login-header" title="Sign in with Google">
+          <svg class="google-logo-svg" viewBox="0 0 24 24" width="18" height="18">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span class="btn-google-text">Google Sign In</span>
+        </button>
+        <div id="user-profile-badge" class="user-profile-badge" style="display:none;">
+          <img id="user-avatar" class="user-avatar" src="" alt="Avatar">
+          <span id="user-name" class="user-name">Player</span>
+          <button id="btn-sign-out" class="sign-out-btn" title="Sign Out">✕</button>
+        </div>
+      </div>
+
+      <button class="icon-btn pwa-install-btn" id="btn-install-pwa" style="display:none;" title="Install Progressive Web App">📲 Install App</button>
+      <button class="icon-btn" id="btn-vault" title="Sound Vault">🏛️ Vault</button>
+      <button class="icon-btn" id="btn-how" title="How to play">❓ Guide</button>
+    </div>
+  </header>
+
+  <!-- STARTING TOPIC & 2-TEAM SETUP MODAL -->
+  <div id="topic-select-modal" class="modal-backdrop">
+    <div class="modal-card topic-modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="topic-modal-title">🎙️ GUESSOUND SHOWDOWN</h2>
+          <p class="modal-desc" style="margin-bottom:0;">
+            2-Team Showdown: The sound is broadcast <strong>3 times</strong>, then the answer options unlock with the theme pack's countdown timer!
+          </p>
+        </div>
+        <button class="close-btn" id="btn-close-topic-modal" title="Close">✕</button>
+      </div>
+
+      <!-- Topic Cards Grid -->
+      <label class="section-label" style="margin-top:10px;">1. CHOOSE SOUND TOPIC PACK</label>
+      <div class="topic-grid" id="topic-grid">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- N-Team Setup Inputs in Topic Modal -->
+      <div class="team-setup-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label class="section-label" style="margin:0;">2. CONFIGURE TEAMS</label>
+            <span class="team-count-badge" id="modal-team-count-badge">2 Teams</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-secondary-compact" id="btn-modal-add-team">➕ Add Team</button>
+            <button type="button" class="btn-randomize-teams" id="btn-modal-randomize-teams" title="Generate Random Steampunk Team Names">🎲 Randomize</button>
+          </div>
+        </div>
+        <div class="team-roster-list" id="team-roster-list-modal">
+          <!-- Dynamically injected N-team inputs -->
+        </div>
+        <div class="team-rule-pill">
+          <span>🎧 <strong>Round-Robin Rule:</strong> Each team takes turns guessing with <strong>3 sound broadcasts</strong> before the countdown timer!</span>
+        </div>
+      </div>
+
+      <!-- Game Mode Selection Inside Start Modal -->
+      <div class="topic-mode-section">
+        <label class="section-label">3. SELECT GAME MODE</label>
+        <div class="mode-selector modal-mode-selector">
+          <button class="mode-chip active" data-mode="classic">
+            <span class="mode-icon">⏱️</span>
+            <div class="mode-meta">
+              <span class="mode-name">Classic Show</span>
+              <span class="mode-sub">Pack Timer • 3 Broadcasts</span>
+            </div>
+          </button>
+          <button class="mode-chip" data-mode="speedrun">
+            <span class="mode-icon">⚡</span>
+            <div class="mode-meta">
+              <span class="mode-name">Speedrun Duel</span>
+              <span class="mode-sub">Fast Timer • 2x Points</span>
+            </div>
+          </button>
+          <button class="mode-chip" data-mode="zen">
+            <span class="mode-icon">🧘</span>
+            <div class="mode-meta">
+              <span class="mode-name">Zen Lounge</span>
+              <span class="mode-sub">Untimed • Relax</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="topic-footer">
+        <button class="btn-secondary" id="btn-topic-import">📥 Import JSON Pack</button>
+        <button class="btn-primary" id="btn-topic-launch">
+          <span id="topic-launch-label">🚀 START N-TEAM SHOWDOWN</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME VIEW / MAIN MENU -->
+  <main id="home-view" class="view-screen active">
+    <!-- Main Menu Mode Navigation Tabs -->
+    <div class="home-nav-tabs">
+      <button type="button" class="home-nav-tab active" id="tab-home-play">
+        <span>🎙️ PLAY SHOWDOWN</span>
+      </button>
+      <button type="button" class="home-nav-tab" id="tab-home-forge">
+        <span>🧪 PACK FORGE STUDIO</span>
+      </button>
+    </div>
+
+    <!-- PANE 1: PLAY SHOWDOWN -->
+    <div id="home-pane-play" class="home-pane active">
+      <div class="hero-card">
+        <div class="hero-glow"></div>
+        <div class="pulse-sphere">
+          <span class="sphere-icon">⚙️</span>
+        </div>
+        <h1 class="hero-title">GUESSOUND</h1>
+        <p class="hero-subtitle">
+          Step up to the steampunk stage! Compete across multiple teams to identify deceptive foley noises. Listen to the 3 sound broadcasts, then make your guess before the timer runs out!
+        </p>
+
+        <!-- Active Pack Indicator on Hero -->
+        <div class="hero-pack-banner" id="hero-pack-btn">
+          <span class="hero-pack-icon" id="hero-pack-icon">🎧</span>
+          <div class="hero-pack-info">
+            <span class="hero-pack-tag">ACTIVE SOUND TOPIC</span>
+            <span class="hero-pack-title" id="hero-pack-title">Sexercise & Everyday Foley (Original)</span>
+            <span class="hero-pack-meta" id="hero-pack-meta">10 Sound Riddles • by Sexercise Team</span>
+          </div>
+          <button class="icon-btn change-pack-btn">Change Topic 📦</button>
+        </div>
+
+        <!-- Google One-Click Sign In Banner on Start Menu -->
+        <div class="google-signin-card" id="google-signin-home-card">
+          <div class="google-signin-left">
+            <span class="google-signin-icon">✨</span>
+            <div class="google-signin-text">
+              <span class="google-signin-title">Google One-Click Sign In</span>
+              <span class="google-signin-sub">Sync duel scores, unlocked trophies & custom sound packs</span>
+            </div>
+          </div>
+          <div class="google-signin-actions">
+            <button type="button" class="btn-google-signin btn-google-signin-compact" id="btn-google-login-home">
+              <svg class="google-logo-svg" viewBox="0 0 24 24" width="20" height="20">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+              <span class="btn-google-text">Google Sign In</span>
+            </button>
+            <button class="icon-btn demo-signin-btn" id="btn-demo-signin" style="font-size:0.75rem; padding:8px 12px;">Quick Guest</button>
+          </div>
+        </div>
+
+        <!-- N-Team Name Setup Roster on Start Menu -->
+        <div class="team-name-bars-card">
+          <div class="team-name-bars-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="team-bars-title">👥 TEAM ROSTER SETUP</span>
+              <span class="team-count-badge" id="team-count-badge">2 Teams</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn-secondary-compact" id="btn-add-team" title="Add another team to the game">➕ Add Team</button>
+              <button type="button" class="btn-randomize-teams" id="btn-randomize-teams" title="Generate Random Steampunk Team Names">🎲 Randomize Names</button>
+            </div>
+          </div>
+          <div class="team-roster-list" id="team-roster-list-home">
+            <!-- Dynamically injected N-team inputs -->
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; width:100%;">
+          <button id="btn-start-game" class="btn-primary" style="flex:1 1 0; min-width:180px; padding:14px 16px; font-size:0.92rem; justify-content:center;">
+            <span>🎙️ START SHOWDOWN</span>
+          </button>
+          <button id="btn-open-lobby-hero" class="btn-secondary" style="flex:1 1 0; min-width:180px; padding:14px 16px; font-size:0.92rem; border-color:#4285f4; color:#8ab4f8; font-weight:800; justify-content:center;">
+            <span>🌐 MULTIPLAYER LOBBY</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Grid -->
+      <div class="categories-section">
+        <h2 class="section-title">CHOOSE A SPECIFIC CATEGORY DUEL</h2>
+        <div class="category-grid" id="category-grid">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 2: PACK FORGE STUDIO (EMBEDDED ON MAIN MENU) -->
+    <div id="home-pane-forge" class="home-pane" style="display:none;">
+      <div class="forge-studio-card">
+        <div class="forge-studio-header">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:2.2rem;">🧪</span>
+            <div>
+              <h2 class="forge-main-title">1920s STEAMPUNK PACK FORGE STUDIO</h2>
+              <p class="forge-main-subtitle">Build custom modular sound decks question-by-question with arbitrary N riddles and custom 3D scenes.</p>
+            </div>
+          </div>
+
+          <!-- Pack Budget Meter (Hidden unless exceeded) -->
+          <div class="pack-size-budget-meter" id="pack-size-budget-meter" style="display:none;">
+            <div class="size-meter-labels">
+              <span class="size-meter-title">💾 PACK MEMORY</span>
+              <span class="size-meter-val" id="size-meter-val">0.00 MB</span>
+            </div>
+            <div class="size-meter-bar-bg">
+              <div class="size-meter-bar-fill" id="size-meter-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wizard Stepper Tracker -->
+        <div class="wizard-stepper" id="wizard-stepper">
+          <div class="wizard-step-item active" id="wiz-step-1-ind">
+            <span class="wiz-step-num">1</span>
+            <span class="wiz-step-label">Pack Setup & N Count</span>
+          </div>
+          <div class="wizard-step-line"></div>
+          <div class="wizard-step-item" id="wiz-step-2-ind">
+            <span class="wiz-step-num">2</span>
+            <span class="wiz-step-label">Question Builder</span>
+          </div>
+          <div class="wizard-step-line"></div>
+          <div class="wizard-step-item" id="wiz-step-3-ind">
+            <span class="wiz-step-num">3</span>
+            <span class="wiz-step-label">Review & Activate</span>
+          </div>
+        </div>
+
+        <!-- STAGE 1: Pack Information & Dynamic N Riddles -->
+        <div id="wiz-stage-pack-info" class="wiz-stage active">
+          <div class="form-group" style="margin-top:12px;">
+            <label>SOUND PACK NAME</label>
+            <input type="text" id="wiz-pack-name" placeholder="e.g. Steampunk Laboratory Foley" required>
+          </div>
+
+          <div class="form-group">
+            <label>PACK DESCRIPTION & THEME</label>
+            <input type="text" id="wiz-pack-desc" placeholder="e.g. Deceptive mechanical rhythms, steam whistles, and inventions." required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>CREATOR / AUTHOR</label>
+              <input type="text" id="wiz-pack-author" placeholder="Captain Clockwork">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label>DEFAULT TIMER (SECONDS)</label>
+              <input type="number" id="wiz-pack-timer" min="5" max="60" value="15">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>PACK THEME ICON</label>
+            <div class="pack-icon-picker" id="wiz-pack-icon-picker">
+              <button type="button" class="icon-pick-btn active" data-icon="📦">📦</button>
+              <button type="button" class="icon-pick-btn" data-icon="🧪">🧪</button>
+              <button type="button" class="icon-pick-btn" data-icon="⚙️">⚙️</button>
+              <button type="button" class="icon-pick-btn" data-icon="📻">📻</button>
+              <button type="button" class="icon-pick-btn" data-icon="🚀">🚀</button>
+              <button type="button" class="icon-pick-btn" data-icon="🎭">🎭</button>
+              <button type="button" class="icon-pick-btn" data-icon="🐾">🐾</button>
+              <button type="button" class="icon-pick-btn" data-icon="🍳">🍳</button>
+              <button type="button" class="icon-pick-btn" data-icon="🍿">🍿</button>
+              <button type="button" class="icon-pick-btn" data-icon="🎸">🎸</button>
+              <button type="button" class="icon-pick-btn" data-icon="🌊">🌊</button>
+              <button type="button" class="icon-pick-btn" data-icon="🎪">🎪</button>
+            </div>
+          </div>
+
+          <!-- Dynamic N Riddle Count Selection & Stepper -->
+          <div class="form-group">
+            <label>NUMBER OF SOUND RIDDLES (N) TO INITIALIZE</label>
+            <div class="n-riddle-count-row">
+              <div class="n-count-stepper-box">
+                <button type="button" class="btn-stepper-adj" id="btn-count-dec">−</button>
+                <input type="number" id="wiz-riddle-count-input" min="1" max="100" value="5" class="n-count-input">
+                <button type="button" class="btn-stepper-adj" id="btn-count-inc">+</button>
+              </div>
+              <div class="count-presets-chips" id="wiz-count-presets">
+                <button type="button" class="q-count-chip" data-count="3">3</button>
+                <button type="button" class="q-count-chip active" data-count="5">5</button>
+                <button type="button" class="q-count-chip" data-count="7">7</button>
+                <button type="button" class="q-count-chip" data-count="10">10</button>
+                <button type="button" class="q-count-chip" data-count="15">15</button>
+                <button type="button" class="q-count-chip" data-count="20">20</button>
+              </div>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:6px 0 0;">✨ You can also freely add or delete riddles on the fly anytime inside the builder.</p>
+          </div>
+
+          <button type="button" class="btn-primary" id="btn-wiz-goto-questions" style="width:100%; margin-top:14px;">
+            <span>➡️ PROCEED TO QUESTION BUILDER (N RIDDLES)</span>
+          </button>
+        </div>
+
+        <!-- STAGE 2: Question-by-Question Builder -->
+        <div id="wiz-stage-question-builder" class="wiz-stage" style="display:none;">
+          <!-- Stepper header for navigating questions -->
+          <div class="wiz-q-nav-bar">
+            <div class="wiz-q-title-badge">
+              <span id="wiz-q-index-pill" class="wiz-q-index-pill">RIDDLE 1 OF 5</span>
+              <span id="wiz-q-completion-status" class="wiz-q-status">In Progress ✏️</span>
+            </div>
+            <div class="wiz-q-pills" id="wiz-q-pills-container">
+              <!-- Dynamically generated question pill buttons [1] [2] [3] ... [N] -->
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn-secondary-compact" id="btn-wiz-add-riddle-stepper" title="Add another riddle (N+1)">➕ Add Riddle</button>
+              <button type="button" class="btn-secondary-compact" id="btn-wiz-delete-riddle" style="color:var(--error); border-color:rgba(231,29,54,0.4);" title="Delete this riddle">🗑️ Delete</button>
+            </div>
+          </div>
+
+          <!-- Question Form Fields -->
+          <div class="custom-form" style="margin-top:10px;">
+            <div class="form-row">
+              <div class="form-group" style="flex:1.4;">
+                <label>SOUND RIDDLE TITLE</label>
+                <input type="text" id="wiz-q-title" placeholder="e.g. Mysterious Heavy Panting" required>
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>CATEGORY</label>
+                <select id="wiz-q-category">
+                  <option value="workoutVsDaily">💪 Workout vs Daily Life</option>
+                  <option value="fitnessComedy">🏋️ Fitness Comedy</option>
+                  <option value="kitchenFood">🍳 Kitchen, Food & ASMR</option>
+                  <option value="animalsNature">🐾 Wild Creatures & Pets</option>
+                  <option value="unexpectedMystery">❓ Unexpected Foley Mystery</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>ACOUSTIC SOUND HINT</label>
+              <input type="text" id="wiz-q-hint" placeholder="e.g. Deep rhythmic breathing cadence and floor squeaks" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" style="flex:1;">
+                <label>3D ANIMATED SCENE PRESET</label>
+                <select id="wiz-q-scene">
+                  <option value="pool_flamingo">🦩 Pool Flamingo Float</option>
+                  <option value="flip_flops">🩴 Wet Flip-Flops Sprint</option>
+                  <option value="stubbed_toe">🪵 Stubbed Toe Table Corner</option>
+                  <option value="squeaky_dog">🐶 Dog with Squeaky Duck</option>
+                  <option value="sizzling_bacon">🥓 Sizzling Bacon Skillet</option>
+                  <option value="massage_gun">⚡ High-Speed Massage Gun</option>
+                  <option value="bike_pump">🚲 Bicycle Hand Pump</option>
+                  <option value="resistance_band">💥 Resistance Band Snap</option>
+                  <option value="mac_and_cheese">🧀 Cheesy Macaroni Stir</option>
+                  <option value="dog_tippytaps">🐾 Happy Paws Tap Dance</option>
+                  <option value="laser_blaster">🔫 Sci-Fi Laser Blaster</option>
+                  <option value="chainsaw_engine">⚙️ Gas Chainsaw Motor</option>
+                  <option value="soda_can">🥤 Ice Cold Soda Can</option>
+                  <option value="cat_hiss">🐱 Angry Cat Hiss & Arch</option>
+                  <option value="kettlebell_thud">🏋️ Dropped Heavy Kettlebell</option>
+                  <option value="woodpecker_tree">🌲 Woodpecker Tree Drum</option>
+                  <option value="water_slide">🌊 Water Park Flume Slide</option>
+                </select>
+                <details style="margin-top:6px;">
+                  <summary style="font-size:0.72rem; color:var(--primary); cursor:pointer; font-weight:800;">🛠️ Or Write Custom 3D JS Code & Geometry</summary>
+                  <div style="margin-top:6px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                      <span style="font-size:0.68rem; color:var(--text-muted);">Custom Script (THREE, group, context):</span>
+                      <select id="wiz-q-script-preset" style="font-size:0.7rem; padding:2px 6px; width:auto; border-radius:6px;">
+                        <option value="">Insert Template...</option>
+                        <option value="kinetic_gear">⚙️ Kinetic Gear Assembly</option>
+                        <option value="plasma_sphere">🔮 Plasma Audio Core</option>
+                        <option value="crystal_prism">💎 Refraction Crystal</option>
+                      </select>
+                    </div>
+                    <textarea id="wiz-q-scene-script" rows="4" style="font-family:monospace; font-size:0.74rem; width:100%; box-sizing:border-box; background:rgba(0,0,0,0.6); color:#00ff88; border:1px solid rgba(0,255,136,0.3); border-radius:8px; padding:6px;" placeholder="// Custom Three.js Scene Script: create geometry, materials, and return { update(time, delta, audioVol), onEvent(name, payload) }"></textarea>
+                    <button type="button" class="btn-secondary" id="btn-wiz-trigger-3d-update" style="margin-top:6px; font-size:0.75rem; width:100%; padding:6px 12px; border-color:#00ff88; color:#00ff88;">
+                      ⚡ Trigger Live 3D Update & Inspect Model
+                    </button>
+                  </div>
+                </details>
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>SYNTH PRESET (FALLBACK)</label>
+                <select id="wiz-q-synth">
+                  <option value="panting_groan">Heavy Panting & Groan (Synth)</option>
+                  <option value="flip_flops">Wet Flip Flop Slaps (Synth)</option>
+                  <option value="stubbed_toe">Impact Thud & Roar (Synth)</option>
+                  <option value="squeaky_duck">High Rubber Squeaks (Synth)</option>
+                  <option value="bacon_sizzle">Crisp Bacon Sizzle (Synth)</option>
+                  <option value="massage_gun">Deep 40Hz Motor Hum (Synth)</option>
+                  <option value="bike_pump">Air Compression Stroke (Synth)</option>
+                  <option value="band_snap">Elastic Tension Snap (Synth)</option>
+                  <option value="mac_cheese">Viscous Squishy Churn (Synth)</option>
+                  <option value="dog_taps">Claw Tippy Taps (Synth)</option>
+                  <option value="laser_pew">Sci-Fi Laser Pew Sweep (Synth)</option>
+                  <option value="chainsaw_rev">High-RPM Chainsaw Rev (Synth)</option>
+                  <option value="soda_pop">Pressurized Can Pop & Fizz (Synth)</option>
+                  <option value="cat_angry_hiss">Feline Air Hiss (Synth)</option>
+                  <option value="heavy_thud">Sub-Bass Floor Thump (Synth)</option>
+                  <option value="woodpecker_peck">Machine-Gun Wood Clicks (Synth)</option>
+                  <option value="water_splash">Flume Water Splash (Synth)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Base64 Audio Upload & Link Section -->
+            <div class="form-group">
+              <label>CUSTOM SOUND AUDIO (Upload Audio File or Web Link)</label>
+              <div class="form-row" style="margin-bottom:8px;">
+                <div class="form-group" style="flex:1;">
+                  <label style="font-size:0.75rem; color:var(--text-muted);">📤 Upload Audio (MP3, WAV, OGG, M4A, FLAC)</label>
+                  <input type="file" id="wiz-q-audio-file" accept="audio/*">
+                </div>
+                <div class="form-group" style="flex:1.2;">
+                  <label style="font-size:0.75rem; color:var(--text-muted);">🔗 Or Audio Link (Auto-converted to Base64)</label>
+                  <input type="url" id="wiz-q-audio-url" placeholder="https://example.com/sound.mp3">
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div id="wiz-q-base64-badge" class="base64-badge" style="display:none;">⚡ Base64 Audio Encoded</div>
+                <button type="button" class="btn-secondary-compact" id="btn-wiz-test-audio">🔊 Test Sound Preview</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>ANSWER CHOICES (Select the radio for the true answer)</label>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="0">
+                <input type="text" id="wiz-opt-0" placeholder="Option A" required>
+              </div>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="1">
+                <input type="text" id="wiz-opt-1" placeholder="Option B" required>
+              </div>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="2">
+                <input type="text" id="wiz-opt-2" placeholder="Option C" required>
+              </div>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="3" checked>
+                <input type="text" id="wiz-opt-3" placeholder="Option D (Correct Answer)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>REVEAL TITLE (What actually happened)</label>
+              <input type="text" id="wiz-rev-title" placeholder="e.g. Carrying 14 Grocery Bags at Once!" required>
+            </div>
+
+            <div class="form-group">
+              <label>REVEAL EXPLANATION</label>
+              <textarea id="wiz-rev-desc" rows="2" placeholder="Refusing to make a second trip from the car to the kitchen at all costs!" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>FUN FACT / FOLEY SCIENCE TRIVIA</label>
+              <textarea id="wiz-rev-fact" rows="2" placeholder="94% of humans prefer risking finger circulation loss over taking two trips." required></textarea>
+            </div>
+
+            <div class="modal-buttons" style="margin-top:16px;">
+              <button type="button" class="btn-secondary" id="btn-wiz-prev-question">⬅️ Previous Riddle</button>
+              <button type="button" class="btn-secondary" id="btn-wiz-back-to-info">⚙️ Pack Setup</button>
+              <button type="button" class="btn-secondary" id="btn-wiz-add-new-riddle">➕ Add Another Riddle</button>
+              <button type="button" class="btn-primary" id="btn-wiz-next-question">
+                <span id="btn-wiz-next-label">Next Riddle ➡️</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STAGE 3: Review & Finish Screen -->
+        <div id="wiz-stage-review" class="wiz-stage" style="display:none;">
+          <div class="wiz-review-header">
+            <div class="wiz-review-pack-badge">
+              <span id="wiz-review-icon" style="font-size:2.2rem;">📦</span>
+              <div style="flex:1;">
+                <h3 id="wiz-review-name" style="margin:0; font-size:1.3rem; color:var(--primary);">Pack Title</h3>
+                <p id="wiz-review-meta" style="margin:2px 0 0; font-size:0.8rem; color:var(--text-muted);">By Author • 5 Questions</p>
+              </div>
+              <div class="pack-size-budget-meter" style="max-width:200px;">
+                <div class="size-meter-labels">
+                  <span class="size-meter-title">MEMORY</span>
+                  <span class="size-meter-val" id="size-meter-val-review">0.00 MB / 100.00 MB</span>
+                </div>
+                <div class="size-meter-bar-bg">
+                  <div class="size-meter-bar-fill" id="size-meter-fill-review" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <label class="section-label" style="margin-top:14px;">QUESTION BREAKDOWN</label>
+          <div class="wiz-review-list" id="wiz-review-list">
+            <!-- Dynamically generated question cards -->
+          </div>
+
+          <div class="modal-buttons" style="margin-top:18px;">
+            <button type="button" class="btn-secondary" id="btn-wiz-review-back">⬅️ Back to Questions</button>
+            <button type="button" class="btn-secondary" id="btn-wiz-export-json">📥 Export JSON</button>
+            <button type="button" class="btn-primary" id="btn-wiz-save-activate">
+              <span>💾 SAVE & ACTIVATE PACK</span>
+            </button>
+            <button type="button" class="btn-primary" id="btn-wiz-play-test-now" style="background:var(--accent); border-color:var(--accent); color:#fff;">
+              <span>🚀 PLAY TEST NOW</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- GAMEPLAY HUD (N-TEAM SHOWDOWN) -->
+  <div id="game-hud" class="hud-overlay">
+    <!-- Top N-Team Scoreboard & Turn Banner -->
+    <div class="hud-top">
+      <div class="team-scoreboard" id="hud-team-scoreboard">
+        <!-- Dynamic N-Team score badges injected here -->
+      </div>
+      <div class="hud-round-pill" id="hud-round">ROUND 1/6</div>
+    </div>
+
+    <!-- Active Turn Announcement Banner -->
+    <div class="turn-announcement-bar" id="turn-announcement-bar">
+      <span class="turn-icon" id="turn-icon">👉</span>
+      <span class="turn-text" id="turn-text">NOW GUESSING: TEAM 1 ⚙️</span>
+      <span class="streak-mini" id="hud-streak">🔥 0 STREAK (1.0x)</span>
+    </div>
+
+    <!-- Timer Bar & Countdown Badge -->
+    <div class="timer-wrapper">
+      <div class="timer-container" id="timer-container">
+        <div class="timer-bar" id="timer-bar"></div>
+      </div>
+      <div class="timer-sec-pill" id="timer-sec-pill">⏳ 15s</div>
+    </div>
+
+    <!-- 3D Orbit Tip -->
+    <div class="drag-hint">
+      <span>🖱️ Drag to rotate 3D steampunk scene</span>
+    </div>
+
+    <!-- Bottom Question & Options Card -->
+    <div class="hud-bottom">
+      <!-- 3 Broadcasts Status Bar -->
+      <div class="acoustic-bar">
+        <div class="listen-counter-pill" id="listen-counter-pill">
+          <span class="listen-title">📡 BROADCAST:</span>
+          <span class="listen-dots" id="listen-dots">● ○ ○</span>
+          <span class="listen-label" id="listen-count-label">(1 of 3)</span>
+        </div>
+        <span class="acoustic-hint" id="hud-hint">Broadcasting acoustic frequencies...</span>
+        <button class="replay-btn" id="btn-replay" style="display:none;">
+          <span id="replay-btn-text">🔊 Replay Sound</span>
+        </button>
+      </div>
+
+      <!-- 3-Listen Broadcast Countdown Progress (Visible during 3 sound plays) -->
+      <div class="listen-phase-card" id="listen-phase-card">
+        <div class="listen-stage-badge" id="listen-stage-badge">
+          <span class="listen-pulse-icon">📡</span>
+          <span class="listen-stage-title" id="listen-stage-title">HEARING SOUND (BROADCAST 1 OF 3)...</span>
+        </div>
+        <p class="listen-phase-desc" id="listen-phase-desc">
+          Transmitting acoustic signature to color CRT monitors... Options unlock after 3 broadcasts!
+        </p>
+        <div class="oscilloscope-container">
+          <canvas id="hud-oscilloscope" width="460" height="70"></canvas>
+        </div>
+        <div class="listen-meter-bar">
+          <div class="listen-meter-fill" id="listen-meter-fill" style="width: 33%;"></div>
+        </div>
+        <button class="btn-secondary" id="btn-skip-broadcast" style="margin-top:12px; font-size:0.8rem; padding:8px 16px; border-color:var(--primary); color:var(--primary); cursor:pointer;">
+          ⚡ Ready to Guess (Unlock Options Now)
+        </button>
+      </div>
+
+      <!-- Question Title & Options Grid (Revealed after 3 listens) -->
+      <div class="options-container" id="options-container" style="display:none;">
+        <h2 class="question-title" id="hud-question-title">What is making this sound?</h2>
+        <div class="options-grid" id="options-grid">
+          <!-- 4 Option cards injected here -->
+        </div>
+        <!-- Action Tools -->
+        <div class="hud-actions" id="hud-actions">
+          <button class="action-btn hint-btn" id="btn-hint-5050">
+            <span>✨ 50/50 HINT</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Post-Guess Reveal Card -->
+      <div class="reveal-card" id="reveal-card">
+        <div class="reveal-header">
+          <div class="reveal-status" id="reveal-status">
+            <span class="reveal-icon" id="reveal-icon">🎉</span>
+            <span class="reveal-msg" id="reveal-msg">TEAM BRASS NAILED IT! (+250 PTS)</span>
+          </div>
+        </div>
+        <h3 class="reveal-source-title" id="reveal-source-title">The Real Source Title</h3>
+        <p class="reveal-explanation" id="reveal-explanation">Explanation story here.</p>
+        <div class="trivia-box">
+          <span class="trivia-icon">💡</span>
+          <span class="trivia-text" id="reveal-trivia">Fun fact trivia goes here.</span>
+        </div>
+        <button class="btn-primary" id="btn-next-round">
+          <span>NEXT TEAM TURN ➡️</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3D SCENE STAGE INSPECTOR HUD (When viewing 3D models from Vault or Studio) -->
+  <div id="scene-viewer-hud" class="view-screen" style="display:none; pointer-events:none; background:transparent;">
+    <div class="scene-viewer-card" style="pointer-events:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="viewer-3d-icon" style="font-size:1.6rem;">🦩</span>
+          <div>
+            <div id="viewer-3d-title" style="font-size:1.1rem; font-weight:900; color:var(--primary); font-family:var(--font-display);">Pool Flamingo Float</div>
+            <div id="viewer-3d-category" style="font-size:0.75rem; color:var(--text-muted);">Workout vs Daily Life • 1920s Foley Mystery</div>
+          </div>
+        </div>
+        <button type="button" class="close-btn" id="btn-close-3d-viewer" title="Return to Menu">✕</button>
+      </div>
+
+      <p id="viewer-3d-desc" style="font-size:0.82rem; color:var(--text-main); margin-bottom:12px; line-height:1.4;">The squeaking sound of rubber and water sloshes mimic intense exertion!</p>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-primary" id="btn-viewer-replay-sound" style="font-size:0.82rem; padding:8px 14px; flex:1.2;">
+          <span>🔊 Play Foley Sound</span>
+        </button>
+        <button type="button" class="btn-secondary" id="btn-viewer-back-vault" style="font-size:0.82rem; padding:8px 14px; flex:1;">
+          <span>🏛️ Back to Vault</span>
+        </button>
+        <button type="button" class="btn-secondary" id="btn-viewer-back-home" style="font-size:0.82rem; padding:8px 14px; flex:1;">
+          <span>🏠 Main Menu</span>
+        </button>
+      </div>
+      <div style="font-size:0.72rem; color:var(--text-muted); text-align:center; margin-top:8px;">
+        🖱️ Click & drag anywhere on stage to rotate 3D object
+      </div>
+    </div>
+  </div>
+
+  <!-- SOUND PACKS MANAGER MODAL -->
+  <div id="packs-modal" class="modal-backdrop">
+    <div class="modal-card packs-manager-card">
+      <div class="modal-header">
+        <h2>📦 SOUND PACK MANAGER</h2>
+        <button class="close-btn" id="btn-close-packs">✕</button>
+      </div>
+      <p class="modal-desc">
+        Select, import, export, or create modular sound & answer packs stored in localStorage!
+      </p>
+
+      <div class="packs-toolbar">
+        <button class="btn-primary" id="btn-packs-open-lab" style="font-size:0.8rem; padding:8px 14px;">🧪 Forge New Pack in Lab</button>
+        <button class="btn-secondary" id="btn-open-import">📥 Import JSON Pack</button>
+        <button class="btn-secondary" id="btn-export-active">📤 Export Active Pack</button>
+        <button class="btn-secondary" id="btn-reset-packs" style="color:var(--error); border-color:rgba(231,29,54,0.4);">🔄 Reset Defaults</button>
+      </div>
+
+      <!-- Installed Packs List -->
+      <div class="packs-list" id="packs-list">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT SOUND PACK MODAL -->
+  <div id="import-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>📥 IMPORT SOUND PACK</h2>
+        <button class="close-btn" id="btn-close-import">✕</button>
+      </div>
+      <p class="modal-desc">Upload a `.json` sound pack file or paste raw JSON below:</p>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>UPLOAD JSON FILE</label>
+        <input type="file" id="import-file-input" accept=".json,application/json">
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>OR PASTE JSON CODE</label>
+        <textarea id="import-textarea" rows="6" placeholder='{\n  "name": "My Custom Foley Pack",\n  "description": "Custom sounds",\n  "timerSeconds": 15,\n  "sounds": [...]\n}'></textarea>
+      </div>
+
+      <div id="import-error-msg" class="error-msg" style="display:none;"></div>
+
+      <div class="modal-buttons">
+        <button class="btn-secondary" id="btn-cancel-import">Cancel</button>
+        <button class="btn-primary" id="btn-submit-import">Load & Install Pack</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER / 2-TEAM WINNER MODAL -->
+  <div id="gameover-modal" class="modal-backdrop">
+    <div class="modal-card gameover-card">
+      <div class="trophy-icon">🏆</div>
+      <h2 class="gameover-title" id="go-winner-title">TEAM BRASS WINS!</h2>
+      <div class="go-score" id="go-score">FINAL SHOWDOWN SCORE</div>
+
+      <!-- N-Team Leaderboard & Podium Grid -->
+      <div class="team-duel-results" id="go-team-results-grid">
+        <!-- Injected dynamically for all N teams -->
+      </div>
+
+      <div class="recap-list" id="go-recap-list">
+        <!-- Round details injected here -->
+      </div>
+
+      <div class="modal-buttons">
+        <button class="btn-secondary" id="btn-go-home">MAIN MENU</button>
+        <button class="btn-primary" id="btn-go-replay">PLAY REMATCH</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOUND VAULT MODAL -->
+  <div id="vault-modal" class="modal-backdrop">
+    <div class="modal-card vault-card">
+      <div class="modal-header">
+        <h2>🏛️ 3D SOUND VAULT</h2>
+        <button class="close-btn" id="btn-close-vault">✕</button>
+      </div>
+      <p class="modal-desc" id="vault-desc">Browse 3D scenes, listen to sounds, and explore foley science from the active pack!</p>
+      <div class="vault-list" id="vault-list">
+        <!-- Vault cards injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM SOUND LAB MODAL -->
+  <div id="lab-modal" class="modal-backdrop">
+    <div class="modal-card lab-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.6rem;">🧪</span>
+          <div>
+            <h2 style="margin:0; font-size:1.35rem; color:var(--primary);">CUSTOM SOUND LAB & PACK FORGE</h2>
+            <p class="modal-desc" style="margin:0;">Create custom sound packs question-by-question or add riddles to existing packs!</p>
+          </div>
+        </div>
+        <button class="close-btn" id="btn-close-lab">✕</button>
+      </div>
+
+      <!-- Mode Selector Tabs: Full Pack Creator vs Quick Add Sound -->
+      <div class="lab-mode-tabs" id="lab-mode-tabs">
+        <button type="button" class="lab-mode-tab active" id="tab-lab-create-pack">📦 Create Full Sound Pack</button>
+        <button type="button" class="lab-mode-tab" id="tab-lab-single-sound">➕ Quick Add Single Sound</button>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 1: FULL SOUND PACK WIZARD (Question-by-Question) -->
+      <!-- ================================================================= -->
+      <div id="lab-pack-wizard-view" class="lab-view-section active">
+        <!-- Wizard Step Tracker Header -->
+        <div class="wizard-stepper" id="wizard-stepper">
+          <div class="wizard-step-item active" id="wiz-step-1-ind">
+            <span class="wiz-step-num">1</span>
+            <span class="wiz-step-label">Pack Info</span>
+          </div>
+          <div class="wizard-step-line"></div>
+          <div class="wizard-step-item" id="wiz-step-2-ind">
+            <span class="wiz-step-num">2</span>
+            <span class="wiz-step-label">Question Builder</span>
+          </div>
+          <div class="wizard-step-line"></div>
+          <div class="wizard-step-item" id="wiz-step-3-ind">
+            <span class="wiz-step-num">3</span>
+            <span class="wiz-step-label">Review & Finish</span>
+          </div>
+        </div>
+
+        <!-- STAGE 1: Pack Information -->
+        <div id="wiz-stage-pack-info" class="wiz-stage active">
+          <div class="form-group" style="margin-top:12px;">
+            <label>SOUND PACK NAME</label>
+            <input type="text" id="wiz-pack-name" placeholder="e.g. Steampunk Laboratory Foley" required>
+          </div>
+
+          <div class="form-group">
+            <label>PACK DESCRIPTION & THEME</label>
+            <input type="text" id="wiz-pack-desc" placeholder="e.g. Deceptive mechanical rhythms, steam whistles, and inventions." required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>CREATOR / AUTHOR</label>
+              <input type="text" id="wiz-pack-author" placeholder="Captain Clockwork">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label>DEFAULT TIMER (SECONDS)</label>
+              <input type="number" id="wiz-pack-timer" min="5" max="60" value="15">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>PACK THEME ICON</label>
+            <div class="pack-icon-picker" id="wiz-pack-icon-picker">
+              <button type="button" class="icon-pick-btn active" data-icon="📦">📦</button>
+              <button type="button" class="icon-pick-btn" data-icon="🧪">🧪</button>
+              <button type="button" class="icon-pick-btn" data-icon="⚙️">⚙️</button>
+              <button type="button" class="icon-pick-btn" data-icon="📻">📻</button>
+              <button type="button" class="icon-pick-btn" data-icon="🚀">🚀</button>
+              <button type="button" class="icon-pick-btn" data-icon="🎭">🎭</button>
+              <button type="button" class="icon-pick-btn" data-icon="🐾">🐾</button>
+              <button type="button" class="icon-pick-btn" data-icon="🍳">🍳</button>
+              <button type="button" class="icon-pick-btn" data-icon="🍿">🍿</button>
+              <button type="button" class="icon-pick-btn" data-icon="🎸">🎸</button>
+              <button type="button" class="icon-pick-btn" data-icon="🌊">🌊</button>
+              <button type="button" class="icon-pick-btn" data-icon="🎪">🎪</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>TOTAL NUMBER OF SOUND QUESTIONS TO CREATE</label>
+            <div class="question-count-selector" id="wiz-question-count-selector">
+              <button type="button" class="q-count-chip active" data-count="3">3 Riddles</button>
+              <button type="button" class="q-count-chip" data-count="4">4 Riddles</button>
+              <button type="button" class="q-count-chip" data-count="5">5 Riddles</button>
+              <button type="button" class="q-count-chip" data-count="6">6 Riddles</button>
+              <button type="button" class="q-count-chip" data-count="8">8 Riddles</button>
+              <button type="button" class="q-count-chip" data-count="10">10 Riddles</button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-primary" id="btn-wiz-goto-questions" style="width:100%; margin-top:12px;">
+            <span>➡️ PROCEED TO QUESTION-BY-QUESTION BUILDER</span>
+          </button>
+        </div>
+
+        <!-- STAGE 2: Question-by-Question Builder -->
+        <div id="wiz-stage-question-builder" class="wiz-stage" style="display:none;">
+          <!-- Stepper header for navigating questions -->
+          <div class="wiz-q-nav-bar">
+            <div class="wiz-q-title-badge">
+              <span id="wiz-q-index-pill" class="wiz-q-index-pill">QUESTION 1 OF 3</span>
+              <span id="wiz-q-completion-status" class="wiz-q-status">In Progress ✏️</span>
+            </div>
+            <div class="wiz-q-pills" id="wiz-q-pills-container">
+              <!-- Dynamically generated question pill buttons [1] [2] [3] ... -->
+            </div>
+          </div>
+
+          <!-- Question Form Fields -->
+          <div class="custom-form" style="margin-top:10px;">
+            <div class="form-row">
+              <div class="form-group" style="flex:1.4;">
+                <label>SOUND RIDDLE TITLE</label>
+                <input type="text" id="wiz-q-title" placeholder="e.g. Mysterious Heavy Panting" required>
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>CATEGORY</label>
+                <select id="wiz-q-category">
+                  <option value="workoutVsDaily">💪 Workout vs Daily Life</option>
+                  <option value="fitnessComedy">🏋️ Fitness Comedy</option>
+                  <option value="kitchenFood">🍳 Kitchen, Food & ASMR</option>
+                  <option value="animalsNature">🐾 Wild Creatures & Pets</option>
+                  <option value="unexpectedMystery">❓ Unexpected Foley Mystery</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>ACOUSTIC SOUND HINT</label>
+              <input type="text" id="wiz-q-hint" placeholder="e.g. Deep rhythmic breathing cadence and floor squeaks" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>3D ANIMATED SCENE PRESET</label>
+                <select id="wiz-q-scene">
+                  <option value="pool_flamingo">🦩 Pool Flamingo Float</option>
+                  <option value="flip_flops">🩴 Wet Flip-Flops Sprint</option>
+                  <option value="stubbed_toe">🪵 Stubbed Toe Table Corner</option>
+                  <option value="squeaky_dog">🐶 Dog with Squeaky Duck</option>
+                  <option value="sizzling_bacon">🥓 Sizzling Bacon Skillet</option>
+                  <option value="massage_gun">⚡ High-Speed Massage Gun</option>
+                  <option value="bike_pump">🚲 Bicycle Hand Pump</option>
+                  <option value="resistance_band">💥 Resistance Band Snap</option>
+                  <option value="mac_and_cheese">🧀 Cheesy Macaroni Stir</option>
+                  <option value="dog_tippytaps">🐾 Happy Paws Tap Dance</option>
+                  <option value="laser_blaster">🔫 Sci-Fi Laser Blaster</option>
+                  <option value="chainsaw_engine">⚙️ Gas Chainsaw Motor</option>
+                  <option value="soda_can">🥤 Ice Cold Soda Can</option>
+                  <option value="cat_hiss">🐱 Angry Cat Hiss & Arch</option>
+                  <option value="kettlebell_thud">🏋️ Dropped Heavy Kettlebell</option>
+                  <option value="woodpecker_tree">🌲 Woodpecker Tree Drum</option>
+                  <option value="water_slide">🌊 Water Park Flume Slide</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>SYNTH PRESET (FALLBACK)</label>
+                <select id="wiz-q-synth">
+                  <option value="panting_groan">Heavy Panting & Groan (Synth)</option>
+                  <option value="flip_flops">Wet Flip Flop Slaps (Synth)</option>
+                  <option value="stubbed_toe">Impact Thud & Roar (Synth)</option>
+                  <option value="squeaky_duck">High Rubber Squeaks (Synth)</option>
+                  <option value="bacon_sizzle">Crisp Bacon Sizzle (Synth)</option>
+                  <option value="massage_gun">Deep 40Hz Motor Hum (Synth)</option>
+                  <option value="bike_pump">Air Compression Stroke (Synth)</option>
+                  <option value="band_snap">Elastic Tension Snap (Synth)</option>
+                  <option value="mac_cheese">Viscous Squishy Churn (Synth)</option>
+                  <option value="dog_taps">Claw Tippy Taps (Synth)</option>
+                  <option value="laser_pew">Sci-Fi Laser Pew Sweep (Synth)</option>
+                  <option value="chainsaw_rev">High-RPM Chainsaw Rev (Synth)</option>
+                  <option value="soda_pop">Pressurized Can Pop & Fizz (Synth)</option>
+                  <option value="cat_angry_hiss">Feline Air Hiss (Synth)</option>
+                  <option value="heavy_thud">Sub-Bass Floor Thump (Synth)</option>
+                  <option value="woodpecker_peck">Machine-Gun Wood Clicks (Synth)</option>
+                  <option value="water_splash">Flume Water Splash (Synth)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Base64 Audio Upload & Link Section -->
+            <div class="form-group">
+              <label>CUSTOM SOUND AUDIO (Upload Audio File or Web Link - Auto Base64 Encoded)</label>
+              <div class="form-row" style="margin-bottom:8px;">
+                <div class="form-group" style="flex:1;">
+                  <label style="font-size:0.75rem; color:var(--text-muted);">📤 Upload File (MP3, WAV, OGG, M4A)</label>
+                  <input type="file" id="wiz-q-audio-file" accept="audio/*">
+                </div>
+                <div class="form-group" style="flex:1.2;">
+                  <label style="font-size:0.75rem; color:var(--text-muted);">🔗 Or Audio Link (Auto-converted to Base64)</label>
+                  <input type="url" id="wiz-q-audio-url" placeholder="https://example.com/sound.mp3">
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div id="wiz-q-base64-badge" class="base64-badge" style="display:none;">⚡ Base64 Audio Encoded</div>
+                <button type="button" class="btn-secondary-compact" id="btn-wiz-test-audio">🔊 Test Sound Preview</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>ANSWER CHOICES (Select the radio for the true answer)</label>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="0">
+                <input type="text" id="wiz-opt-0" placeholder="Option A" required>
+              </div>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="1">
+                <input type="text" id="wiz-opt-1" placeholder="Option B" required>
+              </div>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="2">
+                <input type="text" id="wiz-opt-2" placeholder="Option C" required>
+              </div>
+              <div class="opt-row">
+                <input type="radio" name="wiz-correct" value="3" checked>
+                <input type="text" id="wiz-opt-3" placeholder="Option D (Correct Answer)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>REVEAL TITLE (What actually happened)</label>
+              <input type="text" id="wiz-rev-title" placeholder="e.g. Carrying 14 Grocery Bags at Once!" required>
+            </div>
+
+            <div class="form-group">
+              <label>REVEAL EXPLANATION</label>
+              <textarea id="wiz-rev-desc" rows="2" placeholder="Refusing to make a second trip from the car to the kitchen at all costs!" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>FUN FACT / FOLEY SCIENCE TRIVIA</label>
+              <textarea id="wiz-rev-fact" rows="2" placeholder="94% of humans prefer risking finger circulation loss over taking two trips." required></textarea>
+            </div>
+
+            <div class="modal-buttons" style="margin-top:16px;">
+              <button type="button" class="btn-secondary" id="btn-wiz-prev-question">⬅️ Previous Question</button>
+              <button type="button" class="btn-secondary" id="btn-wiz-back-to-info">⚙️ Pack Info</button>
+              <button type="button" class="btn-primary" id="btn-wiz-next-question">
+                <span id="btn-wiz-next-label">Next Question ➡️</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STAGE 3: Review & Finish Screen -->
+        <div id="wiz-stage-review" class="wiz-stage" style="display:none;">
+          <div class="wiz-review-header">
+            <div class="wiz-review-pack-badge">
+              <span id="wiz-review-icon" style="font-size:2rem;">📦</span>
+              <div>
+                <h3 id="wiz-review-name" style="margin:0; font-size:1.2rem; color:var(--primary);">Pack Title</h3>
+                <p id="wiz-review-meta" style="margin:2px 0 0; font-size:0.78rem; color:var(--text-muted);">By Author • 5 Questions</p>
+              </div>
+            </div>
+          </div>
+
+          <label class="section-label" style="margin-top:14px;">QUESTION BREAKDOWN</label>
+          <div class="wiz-review-list" id="wiz-review-list">
+            <!-- Dynamically generated question cards -->
+          </div>
+
+          <div class="modal-buttons" style="margin-top:18px;">
+            <button type="button" class="btn-secondary" id="btn-wiz-review-back">⬅️ Back to Questions</button>
+            <button type="button" class="btn-secondary" id="btn-wiz-export-json">📥 Export JSON</button>
+            <button type="button" class="btn-primary" id="btn-wiz-save-activate">
+              <span>💾 SAVE & ACTIVATE PACK</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 2: QUICK ADD SINGLE SOUND (Append to existing pack) -->
+      <!-- ================================================================= -->
+      <div id="lab-single-sound-view" class="lab-view-section" style="display:none;">
+        <form id="custom-form" class="custom-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>TARGET SOUND PACK</label>
+              <select id="lab-target-pack">
+                <!-- Injected via JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ROUND TIMER (SECONDS)</label>
+              <input type="number" id="lab-timer" min="5" max="60" value="15" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>SOUND RIDDLE TITLE</label>
+            <input type="text" id="lab-title" required value="Mysterious Heavy Panting">
+          </div>
+
+          <div class="form-group">
+            <label>ACOUSTIC SOUND HINT</label>
+            <input type="text" id="lab-hint" required value="Deep breathing cadence and floor squeaks">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>3D ANIMATED SCENE PRESET</label>
+              <select id="lab-scene">
+                <option value="pool_flamingo">🦩 Pool Flamingo Float</option>
+                <option value="flip_flops">🩴 Wet Flip-Flops Sprint</option>
+                <option value="stubbed_toe">🪵 Stubbed Toe Table Corner</option>
+                <option value="squeaky_dog">🐶 Dog with Squeaky Duck</option>
+                <option value="sizzling_bacon">🥓 Sizzling Bacon Skillet</option>
+                <option value="massage_gun">⚡ High-Speed Massage Gun</option>
+                <option value="bike_pump">🚲 Bicycle Hand Pump</option>
+                <option value="resistance_band">💥 Resistance Band Snap</option>
+                <option value="mac_and_cheese">🧀 Cheesy Macaroni Stir</option>
+                <option value="dog_tippytaps">🐾 Happy Paws Tap Dance</option>
+                <option value="laser_blaster">🔫 Sci-Fi Laser Blaster</option>
+                <option value="chainsaw_engine">⚙️ Gas Chainsaw Motor</option>
+                <option value="soda_can">🥤 Ice Cold Soda Can</option>
+                <option value="cat_hiss">🐱 Angry Cat Hiss & Arch</option>
+                <option value="kettlebell_thud">🏋️ Dropped Heavy Kettlebell</option>
+                <option value="woodpecker_tree">🌲 Woodpecker Tree Drum</option>
+                <option value="water_slide">🌊 Water Park Flume Slide</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>AUDIO SOURCE (Synth Preset or Custom URL)</label>
+              <select id="lab-synth">
+                <option value="panting_groan">Heavy Panting & Groan (Synth)</option>
+                <option value="flip_flops">Wet Flip Flop Slaps (Synth)</option>
+                <option value="stubbed_toe">Impact Thud & Roar (Synth)</option>
+                <option value="squeaky_duck">High Rubber Squeaks (Synth)</option>
+                <option value="bacon_sizzle">Crisp Bacon Sizzle (Synth)</option>
+                <option value="massage_gun">Deep 40Hz Motor Hum (Synth)</option>
+                <option value="bike_pump">Air Compression Stroke (Synth)</option>
+                <option value="band_snap">Elastic Tension Snap (Synth)</option>
+                <option value="mac_cheese">Viscous Squishy Churn (Synth)</option>
+                <option value="dog_taps">Claw Tippy Taps (Synth)</option>
+                <option value="laser_pew">Sci-Fi Laser Pew Sweep (Synth)</option>
+                <option value="chainsaw_rev">High-RPM Chainsaw Rev (Synth)</option>
+                <option value="soda_pop">Pressurized Can Pop & Fizz (Synth)</option>
+                <option value="cat_angry_hiss">Feline Air Hiss (Synth)</option>
+                <option value="heavy_thud">Sub-Bass Floor Thump (Synth)</option>
+                <option value="woodpecker_peck">Machine-Gun Wood Clicks (Synth)</option>
+                <option value="water_splash">Flume Water Splash (Synth)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Base64 Audio Upload & Link Section -->
+          <div class="form-group">
+            <label>CUSTOM AUDIO SOURCE (Upload Audio or Web Link - Auto Base64 Encoded)</label>
+            <div class="form-row" style="margin-bottom:8px;">
+              <div class="form-group" style="flex:1;">
+                <label style="font-size:0.75rem; color:var(--text-muted);">📤 Upload Audio File (MP3, WAV, OGG, M4A)</label>
+                <input type="file" id="lab-audio-file" accept="audio/*">
+              </div>
+              <div class="form-group" style="flex:1.2;">
+                <label style="font-size:0.75rem; color:var(--text-muted);">🔗 Or Audio Link (Auto-converted to Base64)</label>
+                <input type="url" id="lab-audio-url" placeholder="https://example.com/sound.mp3">
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <div id="lab-base64-badge" class="base64-badge" style="display:none;">⚡ Base64 Audio Encoded</div>
+              <button type="button" class="btn-secondary-compact" id="btn-lab-test-audio">🔊 Test Sound Preview</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>ANSWER CHOICES (Select the radio for the true answer)</label>
+            <div class="opt-row">
+              <input type="radio" name="lab-correct" value="0">
+              <input type="text" id="lab-opt-0" required value="Ironman Triathlon Sprint">
+            </div>
+            <div class="opt-row">
+              <input type="radio" name="lab-correct" value="1">
+              <input type="text" id="lab-opt-1" required value="Blowing up giant inflatable pool unicorn">
+            </div>
+            <div class="opt-row">
+              <input type="radio" name="lab-correct" value="2">
+              <input type="text" id="lab-opt-2" required value="Running from an angry park goose">
+            </div>
+            <div class="opt-row">
+              <input type="radio" name="lab-correct" value="3" checked>
+              <input type="text" id="lab-opt-3" required value="Carrying all 14 grocery bags in one trip">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>REVEAL TITLE (What actually happened)</label>
+            <input type="text" id="lab-rev-title" required value="Carrying 14 Grocery Bags at Once!">
+          </div>
+
+          <div class="form-group">
+            <label>REVEAL EXPLANATION</label>
+            <textarea id="lab-rev-desc" rows="2" required>Refusing to make a second trip from the car to the kitchen at all costs!</textarea>
+          </div>
+
+          <div class="form-group">
+            <label>FUN FACT / TRIVIA</label>
+            <textarea id="lab-rev-fact" rows="2" required>94% of humans prefer risking finger circulation loss over taking two trips for groceries.</textarea>
+          </div>
+
+          <div class="modal-buttons">
+            <button type="button" class="btn-secondary" id="btn-save-pack-sound">💾 Save to Sound Pack</button>
+            <button type="submit" class="btn-primary">🚀 Play Test Now</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW TO PLAY MODAL -->
+  <div id="guide-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>📖 STEAMPUNK SHOWDOWN RULES</h2>
+        <button class="close-btn" id="btn-close-guide">✕</button>
+      </div>
+      <div class="guide-steps">
+        <div class="guide-step">
+          <span class="step-num">1</span>
+          <div>
+            <strong>Contrasting Random Team Colors</strong>
+            <p>Each showdown generates distinct complementary colors for all participating teams.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <span class="step-num">2</span>
+          <div>
+            <strong>3 Sound Broadcasts First</strong>
+            <p>The sound is transmitted 3 times in succession while the options remain sealed.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <span class="step-num">3</span>
+          <div>
+            <strong>Options Unlock with Pack Timer</strong>
+            <p>Once all 3 broadcasts conclude, the answer options unlock and the theme pack's countdown timer begins!</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <span class="step-num">4</span>
+          <div>
+            <strong>Pistons Unseal the 3D Reveal</strong>
+            <p>The brass shutter aperture opens and the 3D stage reveals the true animated source!</p>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn-primary" id="btn-guide-start-game" style="margin-top:16px; width:100%;">
+        <span>🚀 GOT IT, LET'S PLAY!</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PWA INSTALL POP-UP MODAL -->
+  <div id="pwa-install-modal" class="modal-backdrop">
+    <div class="modal-card pwa-install-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.6rem;">📲</span>
+          <h2 style="font-size:1.25rem; margin:0; color:var(--primary);">INSTALL SHOWDOWN APP</h2>
+        </div>
+        <button class="close-btn" id="btn-close-pwa-modal">✕</button>
+      </div>
+
+      <div class="pwa-hero-box">
+        <img src="/icons/icon.svg" alt="App Icon" class="pwa-app-icon">
+        <div style="text-align:left;">
+          <h3 class="pwa-app-title">Guessound</h3>
+          <p class="pwa-app-subtitle">1920s Steampunk 3D Sound Game Show</p>
+        </div>
+      </div>
+
+      <div class="pwa-features-list">
+        <div class="pwa-feature-item">
+          <span class="pwa-feat-icon">⚡</span>
+          <div>
+            <strong>Full-Screen 3D Immersion</strong>
+            <p>Runs as a standalone desktop/mobile app without browser address bars.</p>
+          </div>
+        </div>
+        <div class="pwa-feature-item">
+          <span class="pwa-feat-icon">📴</span>
+          <div>
+            <strong>100% Offline Gameplay</strong>
+            <p>Access all sound packs, procedural synth audio, and 3D scenes offline.</p>
+          </div>
+        </div>
+        <div class="pwa-feature-item">
+          <span class="pwa-feat-icon">🚀</span>
+          <div>
+            <strong>Instant Launcher Icon</strong>
+            <p>Launches directly from your desktop dock or mobile home screen.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="pwa-ios-instruction" class="pwa-ios-box" style="display:none;">
+        <p>💡 <strong>iOS / Safari:</strong> Tap the Share button <span class="ios-share-icon">⎋</span> at the bottom of Safari, then choose <strong>"Add to Home Screen" ➕</strong>.</p>
+      </div>
+
+      <div class="modal-buttons" style="margin-top:16px;">
+        <button class="btn-secondary" id="btn-dismiss-pwa">Maybe Later</button>
+        <button class="btn-primary" id="btn-confirm-pwa-install">
+          <span>📲 INSTALL APP NOW</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOOGLE SIGN-IN REQUIRED MODAL (GATEKEEPER BEFORE START MENU) -->
+  <div id="auth-required-modal" class="modal-backdrop active">
+    <div class="modal-card auth-required-card">
+      <div class="auth-modal-header" style="text-align:center; margin-bottom:18px;">
+        <div class="pulse-sphere" style="width:80px; height:80px; font-size:2.3rem; margin:0 auto 14px; box-shadow:0 0 40px rgba(212,175,55,0.85);">
+          <span>📻</span>
+        </div>
+        <h1 class="auth-app-brand-title">GUESSOUND</h1>
+        <div class="auth-app-brand-sub">
+          🔒 GOOGLE SIGN-IN REQUIRED TO ENTER
+        </div>
+      </div>
+
+      <div class="auth-modal-content">
+        <p style="font-size:0.88rem; color:var(--text-main); margin-bottom:18px; line-height:1.45;">
+          Step onto the steampunk game show stage! Sign in with your Google Account to assign your verified player username, save team showdown scores, and unlock custom sound decks.
+        </p>
+
+        <div class="auth-box-inner">
+          <div id="google-detect-status" class="google-detect-status">
+            <span class="detect-spinner">⚙️</span>
+            <span id="detect-status-text">Detecting active Google account in browser...</span>
+          </div>
+
+          <button type="button" class="btn-google-signin" id="btn-google-login-modal" style="margin-bottom:12px;">
+            <svg class="google-logo-svg" viewBox="0 0 24 24" width="22" height="22">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span class="btn-google-text">Sign in with Google</span>
+          </button>
+          <div id="google-btn-modal" style="display:none;"></div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin:12px 0 10px; text-transform:uppercase; letter-spacing:1px;">— Or Continue As Guest —</div>
+          <button class="btn-secondary" id="btn-modal-demo-signin" style="width:100%; font-size:0.85rem; padding:12px;">
+            ⚡ Quick Guest Sign-In
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MULTIPLAYER SERVERLESS P2P WEBRTC MODAL -->
+  <div id="lobby-modal" class="modal-backdrop">
+    <div class="modal-card lobby-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.6rem;">🌐</span>
+          <div>
+            <h2 style="font-size:1.3rem; margin:0; color:var(--primary);">SERVERLESS P2P MULTIPLAYER</h2>
+            <p class="modal-desc" style="margin:0;">Direct browser-to-browser WebRTC DataChannels with zero intermediary server!</p>
+          </div>
+        </div>
+        <button class="close-btn" id="btn-close-lobby">✕</button>
+      </div>
+
+      <!-- Lobby Tabs: Create or Join -->
+      <div class="lobby-tabs-header" id="lobby-tabs-header">
+        <button type="button" class="lobby-tab-btn active" id="tab-btn-create-lobby">👑 Host P2P Room</button>
+        <button type="button" class="lobby-tab-btn" id="tab-btn-join-lobby">🚪 Join with Room ID</button>
+      </div>
+
+      <!-- Tab 1: Create Lobby -->
+      <div id="lobby-tab-create" class="lobby-tab-pane active">
+        <div class="form-group" style="margin-top:12px;">
+          <label>CHOOSE SOUND TOPIC DECK</label>
+          <select id="lobby-create-pack">
+            <!-- Injected via JS -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>NUMBER OF TEAMS</label>
+          <div class="team-count-selector" id="lobby-team-count-selector">
+            <button type="button" class="team-count-chip active" data-count="2">2 Teams</button>
+            <button type="button" class="team-count-chip" data-count="3">3 Teams</button>
+            <button type="button" class="team-count-chip" data-count="4">4 Teams</button>
+            <button type="button" class="team-count-chip" data-count="5">5 Teams</button>
+            <button type="button" class="team-count-chip" data-count="6">6 Teams</button>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-create-lobby-submit" style="width:100%; margin-top:14px;">
+          <span>⚡ CREATE SERVERLESS P2P ROOM</span>
+        </button>
+      </div>
+
+      <!-- Tab 2: Join Lobby -->
+      <div id="lobby-tab-join" class="lobby-tab-pane">
+        <div class="form-group" style="margin-top:14px;">
+          <label>ENTER 6-CHARACTER ROOM CODE</label>
+          <input type="text" id="join-lobby-input" placeholder="e.g. STEAM-4821" style="text-transform:uppercase; font-size:1.3rem; letter-spacing:2px; text-align:center; font-weight:900;">
+        </div>
+
+        <button class="btn-primary" id="btn-join-lobby-submit" style="width:100%; margin-top:14px;">
+          <span>🚪 JOIN P2P WEBRTC ROOM</span>
+        </button>
+      </div>
+
+      <!-- Active Lobby Screen (Shown when in a room) -->
+      <div id="lobby-active-room" class="lobby-active-section" style="display:none;">
+        <div class="lobby-room-badge">
+          <div class="room-code-group">
+            <span class="room-code-tag">ROOM ID</span>
+            <span class="room-code-val" id="active-lobby-id">STEAM-0000</span>
+          </div>
+          <button type="button" class="btn-copy-code" id="btn-copy-lobby-id">📋 Copy Code</button>
+        </div>
+
+        <div class="lobby-meta-bar">
+          <span id="active-lobby-pack">📦 Sexercise</span>
+          <span id="active-lobby-mode">⏱️ Classic Show</span>
+          <span id="active-lobby-status" class="status-live">● Live Serverless Sync</span>
+        </div>
+
+        <label class="section-label" style="margin-top:14px;">CONNECTED GOOGLE PLAYERS & TEAM ASSIGNMENTS</label>
+        <div class="lobby-players-grid" id="lobby-players-grid">
+          <!-- Injected via JS -->
+        </div>
+
+        <div class="modal-buttons" style="margin-top:18px;">
+          <button class="btn-secondary" id="btn-leave-lobby">Leave Room</button>
+          <button class="btn-primary" id="btn-launch-multiplayer-game" style="display:none;">
+            <span>🚀 LAUNCH MULTIPLAYER MATCH</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OFFICIAL GOOGLE ACCOUNT PICKER POP-UP MODAL -->
+  <div id="google-account-picker-modal" class="modal-backdrop">
+    <div class="modal-card google-picker-card">
+      <div class="google-picker-header">
+        <div style="display:flex; justify-content:center; margin-bottom:8px;">
+          <svg class="google-logo-svg" viewBox="0 0 24 24" width="32" height="32">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+        </div>
+        <h2 class="google-picker-title">Choose an account</h2>
+        <p class="google-picker-sub">to continue to <strong>Guessound</strong></p>
+        <button class="close-btn" id="btn-close-google-picker">✕</button>
+      </div>
+
+      <!-- Account List -->
+      <div class="google-account-list" id="google-account-picker-list">
+        <!-- Injected via JS -->
+      </div>
+
+      <div class="google-picker-footer">
+        <p>To continue, Google will share your name, email address, and profile picture with Guessound.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
