@@ -3,7 +3,7 @@ import { SceneModelFactory } from './sceneModels.js';
 import { ThemeSceneEngine } from './themeSceneEngine.js';
 import { MysteryShield3D } from './mysteryShield3D.js';
 import { AudioVisualizer3D } from './audioVisualizer3D.js';
-import { GlbManager } from './glbManager.js';
+
 import { SteampunkStage3D } from './steampunkStage3D.js';
 
 
