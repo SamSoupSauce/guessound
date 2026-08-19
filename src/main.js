@@ -560,8 +560,8 @@ function updateActivePackUI() {
   headerPackName.textContent = activePack.name;
   heroPackIcon.textContent = activePack.icon || '📦';
   heroPackTitle.textContent = activePack.name;
-  heroPackMeta.textContent = `${activePack.sounds.length} Sound Riddles • ${activePack.timerSeconds || 15}s Timer • by ${activePack.author || 'User'}`;
-  vaultDesc.textContent = `Browse 3D scenes and listen to sounds from "${activePack.name}"!`;
+  heroPackMeta.textContent = `${activePack.sounds.length} 3D Riddles • Questions & Sounds • by ${activePack.author || 'Guessound'}`;
+  vaultDesc.textContent = `Browse interactive 3D scenes and listen to sounds from "${activePack.name}"!`;
   topicLaunchLabel.textContent = `🚀 START 2-TEAM SHOWDOWN`;
 }
 
@@ -602,10 +602,10 @@ function renderTopicGrid() {
           <div class="topic-card-title">${pack.name}</div>
         </div>
       </div>
-      <p class="topic-card-desc">${pack.description || 'Sound & answer deck'}</p>
+      <p class="topic-card-desc">${pack.description || 'Full Guessound Game Pack'}</p>
       <div class="topic-card-meta">
-        <span class="topic-card-count">${pack.sounds.length} Sounds • ⏳ ${pack.timerSeconds || 15}s</span>
-        <span class="topic-card-author">by ${pack.author || 'User'}</span>
+        <span class="topic-card-count">${pack.sounds.length} 3D Riddles • ⏳ ${pack.timerSeconds || 15}s</span>
+        <span class="topic-card-author">by ${pack.author || 'Guessound'}</span>
       </div>
     `;
 
@@ -737,7 +737,7 @@ function renderPacksList() {
             ${isActive ? '<span class="active-pill">ACTIVE</span>' : ''}
           </div>
           <div class="pack-item-desc">${pack.description || ''}</div>
-          <div class="pack-item-meta">${pack.sounds.length} Sounds • ⏳ ${pack.timerSeconds || 15}s Timer • v${pack.version || '1.1.0'} (Rev ${pack.revision || 1}) • by ${pack.author || 'User'}</div>
+          <div class="pack-item-meta">${pack.sounds.length} 3D Riddles & Questions • ⏳ ${pack.timerSeconds || 15}s Timer • v${pack.version || '1.1.0'} (Rev ${pack.revision || 1}) • by ${pack.author || 'Guessound'}</div>
         </div>
       </div>
       <div class="pack-item-actions">
