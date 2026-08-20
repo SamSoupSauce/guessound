@@ -3,7 +3,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   // Base URL for GitHub Pages (repo name)
-  base: '/guessound/',
+  base: './',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
