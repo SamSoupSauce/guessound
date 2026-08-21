@@ -387,3 +387,42 @@
   border-color: rgba(212, 175, 55, 0.4);
   opacity: 0.85;
 }
+
+
+/* TURN AVATARS & OPTION DECISION LIGHTING */
+.turn-player-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--primary);
+  margin-right: 6px;
+  vertical-align: middle;
+  display: inline-block;
+}
+.turn-player-avatar-fallback {
+  font-size: 1.1rem;
+  margin-right: 6px;
+  vertical-align: middle;
+  display: inline-block;
+}
+.turn-text-highlight {
+  color: var(--primary);
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.turn-text-normal {
+  color: var(--text-main);
+  font-weight: 700;
+}
+.option-card.chosen-by-player {
+  border-color: var(--primary) !important;
+  background: rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.75) !important;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+.option-card.spectator-option {
+  border-style: dashed;
+  border-color: rgba(212, 175, 55, 0.3);
+}
