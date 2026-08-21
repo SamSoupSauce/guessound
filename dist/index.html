@@ -21,8 +21,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap" rel="stylesheet">
   <!-- Google One-Click Sign In (Google Identity Services) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script type="module" crossorigin src="./assets/index.BHOfim0l.js?v=1.2.8"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index.DWM2c-tV.css?v=1.2.8">
+  <script type="module" crossorigin src="./assets/index.BHOfim0l.js?v=1.2.9"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index.DWM2c-tV.css?v=1.2.9">
 </head>
 <body>
   <!-- 3D Three.js Canvas Container -->
@@ -731,6 +731,16 @@
         <div class="trivia-box">
           <span class="trivia-icon">💡</span>
           <span class="trivia-text" id="reveal-trivia">Fun fact trivia goes here.</span>
+        </div>
+                <!-- Multiplayer Intermission Ready Status Box -->
+        <div id="multiplayer-ready-status-box" class="multiplayer-ready-box" style="display:none;">
+          <div class="ready-status-header">
+            <span class="ready-count-badge" id="ready-count-badge">⏳ 0 / 2 Players Ready</span>
+            <span class="ready-hint-sub">All players must click Continue to advance</span>
+          </div>
+          <div class="ready-players-chips" id="ready-players-chips">
+            <!-- Dynamically populated: [Captain Clockwork ✅] [Nikola Tesla ⏳] -->
+          </div>
         </div>
         <button class="btn-primary" id="btn-next-round">
           <span>NEXT TEAM TURN ➡️</span>

@@ -321,3 +321,69 @@
     line-height: 1.25;
   }
 }
+
+
+/* MULTIPLAYER INTERMISSION READY SYSTEM */
+.multiplayer-ready-box {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1.5px solid rgba(212, 175, 55, 0.35);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  box-sizing: border-box;
+  width: 100%;
+}
+.ready-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ready-count-badge {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ready-hint-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.ready-players-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.player-ready-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface-light);
+  border: 1.2px solid rgba(212, 175, 55, 0.25);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+  transition: all 0.25s ease;
+}
+.player-ready-chip.is-ready {
+  border-color: var(--success);
+  background: rgba(46, 196, 182, 0.2);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(46, 196, 182, 0.35);
+}
+.player-ready-chip.waiting {
+  border-color: rgba(212, 175, 55, 0.4);
+  opacity: 0.85;
+}
