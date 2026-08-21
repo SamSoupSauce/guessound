@@ -21,8 +21,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap" rel="stylesheet">
   <!-- Google One-Click Sign In (Google Identity Services) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script type="module" crossorigin src="./assets/index.BHOfim0l.js?v=1.3.0"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index.DWM2c-tV.css?v=1.3.0">
+  <script type="module" crossorigin src="./assets/index.BHOfim0l.js?v=1.3.1"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index.DWM2c-tV.css?v=1.3.1">
 </head>
 <body>
   <!-- 3D Three.js Canvas Container -->
@@ -705,16 +705,56 @@
       </div>
 
       <!-- Question Title & Options Grid (Revealed after 3 listens) -->
+            <!-- Question Title & Options Grid (Revealed after 3 listens) -->
       <div class="options-container" id="options-container" style="display:none;">
-        <h2 class="question-title" id="hud-question-title">What is making this sound?</h2>
-        <div class="options-grid" id="options-grid">
-          <!-- 4 Option cards injected here -->
+        <!-- Actor Interactive View (When it IS the local player's turn) -->
+        <div id="actor-controls-view" class="actor-controls-view">
+          <h2 class="question-title" id="hud-question-title">What is making this sound?</h2>
+          <div class="options-grid" id="options-grid">
+            <!-- 4 Option cards injected here -->
+          </div>
+          <!-- Action Tools -->
+          <div class="hud-actions" id="hud-actions">
+            <button class="action-btn hint-btn" id="btn-hint-5050">
+              <span>✨ 50/50 HINT</span>
+            </button>
+          </div>
         </div>
-        <!-- Action Tools -->
-        <div class="hud-actions" id="hud-actions">
-          <button class="action-btn hint-btn" id="btn-hint-5050">
-            <span>✨ 50/50 HINT</span>
-          </button>
+
+        <!-- Spectator Televisor View (When it is NOT the local player's turn) -->
+        <div id="spectator-televisor-view" class="spectator-televisor-view" style="display:none;">
+          <div class="televisor-bezel">
+            <div class="televisor-top-bar">
+              <div class="televisor-channel-badge">
+                <span class="live-pulse-dot">🔴</span>
+                <span class="tv-channel-text">TELEVISOR FEED • LIVE</span>
+              </div>
+              <div class="televisor-actor-info" id="televisor-actor-info">
+                <!-- Active Actor Info Injected Here -->
+              </div>
+            </div>
+            <div class="televisor-screen-glass" id="televisor-screen-glass">
+              <div class="televisor-scanlines"></div>
+              <div class="televisor-glow"></div>
+              <div class="televisor-content">
+                <div class="televisor-prompt" id="televisor-prompt">📡 AWAITING ACTOR DECISION ON MYSTERY SOUND...</div>
+                <div class="televisor-options-grid" id="televisor-options-grid">
+                  <!-- Large CRT phosphor option channels A, B, C, D -->
+                </div>
+                <div class="televisor-decision-banner" id="televisor-decision-banner">
+                  <span class="tv-radar-icon">📡</span>
+                  <span id="televisor-status-text">Watching cockpit feed in real time...</span>
+                </div>
+              </div>
+            </div>
+            <div class="televisor-bottom-dials">
+              <div class="tv-dial"><span>VOL</span></div>
+              <div class="tv-dial"><span>TUNE</span></div>
+              <div class="tv-speaker-grille">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

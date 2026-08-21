@@ -4450,6 +4450,12 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
         }
         if(typeof window!=="undefined"){
           if(e.action==="SUBMIT_GUESS"&&typeof e.payload?.optionIndex==="number"){
+            let pName = "ACTOR";
+            if(this.currentLobby&&this.currentLobby.players){
+              const pl = Object.values(this.currentLobby.players).find(p=>p.teamId===e.payload.teamIndex);
+              if(pl&&pl.user) pName = pl.user.name;
+            }
+            typeof triggerTelevisorDecision==="function"&&triggerTelevisorDecision(e.payload.optionIndex, pName);
             if(typeof He!=="undefined"&&He&&!He.isRevealed){
               const isCorrect=He.submitAnswer(e.payload.optionIndex);
               typeof Wv==="function"&&Wv(isCorrect,e.payload.optionIndex);
@@ -4643,10 +4649,70 @@ ${n}`)}).catch(()=>{alert(`Room ID: ${Ni.currentLobbyId}`)})}),pf&&pf.addEventLi
       ${i}
       <span class="hud-team-score-name" id="hud-name-${e}">${r.name}</span>
       <span class="hud-team-score-pts" id="hud-score-${e}">${r.score} PTS</span>
-    `,Xh.appendChild(t)}))}function Vv(){if(!He)return;const r=He.activeTeam;He.teams.forEach((e,t)=>{const i=document.getElementById(`hud-team-badge-${t}`),n=document.getElementById(`hud-score-${t}`),s=document.getElementById(`hud-name-${t}`);n&&(n.textContent=`${e.score} PTS`),s&&(s.textContent=e.name),i&&(t===He.activeTeamIndex?i.classList.add("active-turn"):i.classList.remove("active-turn"))}),xA.textContent=`ROUND ${He.currentIndex+1}/${He.totalQuestions}`;let activePlayer=null;if(Ni.currentLobby&&Ni.currentLobby.players){const pList=Object.values(Ni.currentLobby.players);activePlayer=pList.find(p=>p.teamId===He.activeTeamIndex)||pList[0]}const curUser=Dt.getUser(),myPlayer=curUser&&Ni.currentLobby&&Ni.currentLobby.players?Ni.currentLobby.players[curUser.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Ni.isHost()?0:1),isMyTurn=!Ni.currentLobby||(myTeamId===He.activeTeamIndex);if(activePlayer&&activePlayer.user){const aHtml=activePlayer.user.picture?`<img class="turn-player-avatar" src="${activePlayer.user.picture}" alt="${activePlayer.user.name}">`:'<span class="turn-player-avatar-fallback">🧑‍✈️</span>';bA.innerHTML=isMyTurn?`${aHtml} <span class="turn-text-highlight">👑 YOUR TURN (${activePlayer.user.name}) — ${r.name.toUpperCase()}</span>`:`${aHtml} <span class="turn-text-normal">⏳ ${activePlayer.user.name}'s Turn (${r.name.toUpperCase()})</span>`}else{bA.textContent=`👉 NOW PLAYING: ${r.name.toUpperCase()}`}Mf&&(Mf.style.display=isMyTurn?"inline-flex":"none"),Ma&&(Ma.style.display=isMyTurn?"inline-flex":"none"),Tf.style.borderColor=r.color,Tf.style.boxShadow=`0 0 20px ${r.color}66`,TA.textContent=`🔥 ${r.streak} STREAK (${He.comboMultiplier.toFixed(1)}x)`,Mt.setTeamColor(r.color)}function Ud(){qs();const r=He.currentQuestion;if(!r)return;Vv(),pl.style.display="block",Od.style.display="none",Uv.classList.remove("active"),Ma.disabled=!1,Ma.style.opacity="1";const e=He.getInitialRoundTime();Ta.style.width="100%",Ta.style.backgroundColor=He.activeTeam.color,bs.textContent=`⏳ ${Math.ceil(e)}s`,bs.style.color="var(--primary)",bs.style.borderColor="var(--primary)",AA.textContent=r.soundHint;let turnPrompt="What is making this sound?",isMyTurn=!0;if(Ni.currentLobby){const user=Dt.getUser(),myPlayer=user&&Ni.currentLobby.players?Ni.currentLobby.players[user.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Ni.isHost()?0:1);isMyTurn=(myTeamId===He.activeTeamIndex);turnPrompt=isMyTurn?`👉 YOUR TURN! [${He.activeTeam.name}] — Listen & guess!`:`⏳ [${He.activeTeam.name}]'s Turn — Waiting for guess...`}Ov.textContent=turnPrompt,ml.innerHTML="",r.options.forEach((i,n)=>{const s=document.createElement("div");s.className="option-card"+(isMyTurn?"":" not-your-turn spectator-option");s.id=`option-card-${n}`;if(!isMyTurn){s.style.opacity="0.75";s.style.cursor="not-allowed"}s.innerHTML=`
+    `,Xh.appendChild(t)}))}function Vv(){if(!He)return;const r=He.activeTeam;He.teams.forEach((e,t)=>{const i=document.getElementById(`hud-team-badge-${t}`),n=document.getElementById(`hud-score-${t}`),s=document.getElementById(`hud-name-${t}`);n&&(n.textContent=`${e.score} PTS`),s&&(s.textContent=e.name),i&&(t===He.activeTeamIndex?i.classList.add("active-turn"):i.classList.remove("active-turn"))}),xA.textContent=`ROUND ${He.currentIndex+1}/${He.totalQuestions}`;let activePlayer=null;if(Ni.currentLobby&&Ni.currentLobby.players){const pList=Object.values(Ni.currentLobby.players);activePlayer=pList.find(p=>p.teamId===He.activeTeamIndex)||pList[0]}const curUser=Dt.getUser(),myPlayer=curUser&&Ni.currentLobby&&Ni.currentLobby.players?Ni.currentLobby.players[curUser.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Ni.isHost()?0:1),isMyTurn=!Ni.currentLobby||(myTeamId===He.activeTeamIndex);if(activePlayer&&activePlayer.user){const aHtml=activePlayer.user.picture?`<img class="turn-player-avatar" src="${activePlayer.user.picture}" alt="${activePlayer.user.name}">`:'<span class="turn-player-avatar-fallback">🧑‍✈️</span>';bA.innerHTML=isMyTurn?`${aHtml} <span class="turn-text-highlight">👑 YOUR TURN (${activePlayer.user.name}) — ${r.name.toUpperCase()}</span>`:`${aHtml} <span class="turn-text-normal">⏳ ${activePlayer.user.name}'s Turn (${r.name.toUpperCase()})</span>`}else{bA.textContent=`👉 NOW PLAYING: ${r.name.toUpperCase()}`}Mf&&(Mf.style.display=isMyTurn?"inline-flex":"none"),Ma&&(Ma.style.display=isMyTurn?"inline-flex":"none"),Tf.style.borderColor=r.color,Tf.style.boxShadow=`0 0 20px ${r.color}66`,TA.textContent=`🔥 ${r.streak} STREAK (${He.comboMultiplier.toFixed(1)}x)`,Mt.setTeamColor(r.color)}
+function renderTelevisorOptions(q, activePlayer, isMyTurn){
+  const actorView = document.getElementById("actor-controls-view");
+  const tvView = document.getElementById("spectator-televisor-view");
+  const tvActorInfo = document.getElementById("televisor-actor-info");
+  const tvGrid = document.getElementById("televisor-options-grid");
+  const tvStatus = document.getElementById("televisor-status-text");
+  const tvPrompt = document.getElementById("televisor-prompt");
+
+  if(isMyTurn || !Ni.currentLobby){
+    if(actorView) actorView.style.display = "block";
+    if(tvView) tvView.style.display = "none";
+    return;
+  }
+
+  if(actorView) actorView.style.display = "none";
+  if(tvView) tvView.style.display = "block";
+
+  if(tvActorInfo && activePlayer){
+    const aHtml = activePlayer.user.picture ? `<img class="turn-player-avatar" src="${activePlayer.user.picture}" alt="${activePlayer.user.name}">` : '<span class="turn-player-avatar-fallback">🧑‍✈️</span>';
+    tvActorInfo.innerHTML = `${aHtml} <span>${activePlayer.user.name}</span>`;
+  }
+  if(tvPrompt){
+    tvPrompt.textContent = `📡 ${(activePlayer ? activePlayer.user.name : "ACTOR").toUpperCase()} IS DECIDING...`;
+  }
+  if(tvStatus && activePlayer){
+    tvStatus.textContent = `Watching ${activePlayer.user.name}'s cockpit feed in real time...`;
+  }
+  if(tvGrid && q && q.options){
+    tvGrid.innerHTML = "";
+    q.options.forEach((opt, idx) => {
+      const card = document.createElement("div");
+      card.className = "televisor-option-card";
+      card.id = `tv-opt-${idx}`;
+      card.innerHTML = `
+        <div class="televisor-opt-letter">${String.fromCharCode(65 + idx)}</div>
+        <div class="televisor-opt-text">${opt}</div>
+      `;
+      tvGrid.appendChild(card);
+    });
+  }
+}
+function triggerTelevisorDecision(optIndex, actorName){
+  const glass = document.getElementById("televisor-screen-glass");
+  const card = document.getElementById(`tv-opt-${optIndex}`);
+  const tvStatus = document.getElementById("televisor-status-text");
+  if(glass){
+    glass.classList.remove("televisor-decision-flash");
+    void glass.offsetWidth;
+    glass.classList.add("televisor-decision-flash");
+  }
+  if(card){
+    card.classList.add("chosen-by-player");
+  }
+  if(tvStatus){
+    tvStatus.innerHTML = `⚡ <strong>${actorName || "ACTOR"}</strong> LOCKED IN: <strong>OPTION ${String.fromCharCode(65 + optIndex)}</strong>! 🔒`;
+    tvStatus.style.color = "#ffd700";
+  }
+}
+
+function Ud(){qs();const r=He.currentQuestion;if(!r)return;Vv(),pl.style.display="block",Od.style.display="none",Uv.classList.remove("active"),Ma.disabled=!1,Ma.style.opacity="1";const e=He.getInitialRoundTime();Ta.style.width="100%",Ta.style.backgroundColor=He.activeTeam.color,bs.textContent=`⏳ ${Math.ceil(e)}s`,bs.style.color="var(--primary)",bs.style.borderColor="var(--primary)",AA.textContent=r.soundHint;let turnPrompt="What is making this sound?",isMyTurn=!0;if(Ni.currentLobby){const user=Dt.getUser(),myPlayer=user&&Ni.currentLobby.players?Ni.currentLobby.players[user.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Ni.isHost()?0:1);isMyTurn=(myTeamId===He.activeTeamIndex);turnPrompt=isMyTurn?`👉 YOUR TURN! [${He.activeTeam.name}] — Listen & guess!`:`⏳ [${He.activeTeam.name}]'s Turn — Waiting for guess...`}Ov.textContent=turnPrompt,ml.innerHTML="",r.options.forEach((i,n)=>{const s=document.createElement("div");s.className="option-card"+(isMyTurn?"":" not-your-turn spectator-option");s.id=`option-card-${n}`;if(!isMyTurn){s.style.opacity="0.75";s.style.cursor="not-allowed"}s.innerHTML=`
       <div class="opt-letter">${String.fromCharCode(65+n)}</div>
       <div class="opt-text">${i}</div>
-    `,s.addEventListener("click",()=>{if(Ni.currentLobby&&!isMyTurn){return}ua(n)}),ml.appendChild(s)});const t=ut.getActivePack();Mt.loadThemeScene(r,t),Mt.setRevealed(!1),Mt.setMediaForTheme(r),KA(r)}function KA(r){eu(1),Mt.triggerEvent("BROADCAST_PULSE",{stage:1,question:r}),Ee.playSoundForQuestion(r);const e=setTimeout(()=>{eu(2),Mt.triggerEvent("BROADCAST_PULSE",{stage:2,question:r}),Ee.playSoundForQuestion(r)},1800);Cs.push(e);const t=setTimeout(()=>{eu(3),Mt.triggerEvent("BROADCAST_PULSE",{stage:3,question:r}),Ee.playSoundForQuestion(r)},3600);Cs.push(t);const i=setTimeout(()=>{Bu()},5400);Cs.push(i)}function eu(r){SA.textContent=`HEARING SOUND (BROADCAST ${r} OF 3)...`,EA.style.width=`${r*33.33}%`;let e="";for(let t=0;t<3;t++)e+=t<r?"● ":"○ ";MA.textContent=e.trim(),wA.textContent=`(${r} of 3)`}function Bu(){if(!(!He||He.isRevealed))if(Cs.forEach(r=>clearTimeout(r)),Cs=[],He.unlockChoosingPhase(),pl.style.display="none",Od.style.display="block",Ee.playClick(),He.mode!=="zen"&&!wa){const r=He.getInitialRoundTime();He.timeRemaining=r,wa=setInterval(()=>{const e=He.decrementTimer(.1),t=He.timeRemaining/r*100;Ta.style.width=`${t}%`;const i=Math.ceil(He.timeRemaining);bs.textContent=`⏳ ${i}s`,i<=5&&i!==Iu&&i>0&&(Iu=i,Ee.playTimerTick()),He.timeRemaining<4&&(Ta.style.backgroundColor="var(--error)",bs.style.color="var(--error)",bs.style.borderColor="var(--error)"),e&&Wv(!1,-1)},100)}else He.mode==="zen"&&(Ta.style.width="100%",bs.textContent="⏳ UNTIMED")}function ua(r){if(!He||He.isRevealed||He.eliminatedIndices.has(r))return;if(Ni.currentLobby){const user=Dt.getUser(),myPlayer=user&&Ni.currentLobby.players?Ni.currentLobby.players[user.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Ni.isHost()?0:1);if(myTeamId!==He.activeTeamIndex&&r!==-1)return;const optEl=document.getElementById(`option-card-${r}`);optEl&&optEl.classList.add("chosen-by-player");const e=He.submitAnswer(r);Mt.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:He.activeTeam}),Wv(e,r),Ni.sendAction("SUBMIT_GUESS",{optionIndex:r,isCorrect:e,teamIndex:He.activeTeamIndex});return}const e=He.submitAnswer(r);Mt.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:He.activeTeam}),Wv(e,r)}
+    `,s.addEventListener("click",()=>{if(Ni.currentLobby&&!isMyTurn){return}ua(n)}),ml.appendChild(s)});renderTelevisorOptions(r, activePlayer, isMyTurn);const t=ut.getActivePack();Mt.loadThemeScene(r,t),Mt.setRevealed(!1),Mt.setMediaForTheme(r),KA(r)}function KA(r){eu(1),Mt.triggerEvent("BROADCAST_PULSE",{stage:1,question:r}),Ee.playSoundForQuestion(r);const e=setTimeout(()=>{eu(2),Mt.triggerEvent("BROADCAST_PULSE",{stage:2,question:r}),Ee.playSoundForQuestion(r)},1800);Cs.push(e);const t=setTimeout(()=>{eu(3),Mt.triggerEvent("BROADCAST_PULSE",{stage:3,question:r}),Ee.playSoundForQuestion(r)},3600);Cs.push(t);const i=setTimeout(()=>{Bu()},5400);Cs.push(i)}function eu(r){SA.textContent=`HEARING SOUND (BROADCAST ${r} OF 3)...`,EA.style.width=`${r*33.33}%`;let e="";for(let t=0;t<3;t++)e+=t<r?"● ":"○ ";MA.textContent=e.trim(),wA.textContent=`(${r} of 3)`}function Bu(){if(!(!He||He.isRevealed))if(Cs.forEach(r=>clearTimeout(r)),Cs=[],He.unlockChoosingPhase(),pl.style.display="none",Od.style.display="block",Ee.playClick(),He.mode!=="zen"&&!wa){const r=He.getInitialRoundTime();He.timeRemaining=r,wa=setInterval(()=>{const e=He.decrementTimer(.1),t=He.timeRemaining/r*100;Ta.style.width=`${t}%`;const i=Math.ceil(He.timeRemaining);bs.textContent=`⏳ ${i}s`,i<=5&&i!==Iu&&i>0&&(Iu=i,Ee.playTimerTick()),He.timeRemaining<4&&(Ta.style.backgroundColor="var(--error)",bs.style.color="var(--error)",bs.style.borderColor="var(--error)"),e&&Wv(!1,-1)},100)}else He.mode==="zen"&&(Ta.style.width="100%",bs.textContent="⏳ UNTIMED")}function ua(r){if(!He||He.isRevealed||He.eliminatedIndices.has(r))return;if(Ni.currentLobby){const user=Dt.getUser(),myPlayer=user&&Ni.currentLobby.players?Ni.currentLobby.players[user.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Ni.isHost()?0:1);if(myTeamId!==He.activeTeamIndex&&r!==-1)return;const optEl=document.getElementById(`option-card-${r}`);optEl&&optEl.classList.add("chosen-by-player");const e=He.submitAnswer(r);Mt.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:He.activeTeam}),Wv(e,r),Ni.sendAction("SUBMIT_GUESS",{optionIndex:r,isCorrect:e,teamIndex:He.activeTeamIndex});return}const e=He.submitAnswer(r);Mt.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:He.activeTeam}),Wv(e,r)}
 let intermissionReadies = new Set();
 function renderIntermissionReadyBox(){
   const box = document.getElementById("multiplayer-ready-status-box");
@@ -4703,7 +4769,7 @@ function renderIntermissionReadyBox(){
   }
 }
 
-function Wv(r,e){qs();const t=He.currentQuestion,i=He.activeTeam;Mt.setRevealed(!0),Mt.triggerEvent("ROUND_REVEAL",{isCorrect:r,selectedIndex:e,question:t,team:i}),Ee.playShatter(),r?(Ee.playCorrect(),Ji({particleCount:85,spread:90,origin:{y:.6},colors:[i.color,"#ffbe0b","#d4af37","#ffffff"]})):Ee.playWrong(),Array.from(ml.children).forEach((a,o)=>{o===t.correctIndex?a.classList.add("correct"):o===e&&a.classList.add("wrong")}),Od.style.display="none",Ov.textContent=t.revealTitle;const n=He.history[He.history.length-1],s=n?n.pointsEarned:0;r?(wf.className="reveal-status success",Sf.textContent="🎉",Ef.textContent=`${i.name} NAILED IT! (+${s} PTS)`):(wf.className="reveal-status fail",Sf.textContent="❌",Ef.textContent=`${i.name} MISSED! (Actual: ${t.options[t.correctIndex]})`),CA.textContent=t.revealTitle,RA.textContent=t.revealExplanation,IA.textContent=t.funFact,Nv.textContent=He.currentIndex<He.totalQuestions-1?"NEXT TEAM TURN ➡️":"VIEW FINAL WINNER 🏆",Uv.classList.add("active"),Vv(),intermissionReadies.clear(),renderIntermissionReadyBox()}function ZA(){qs();const{winner:r,leaderboard:e,isTie:t}=He.getWinner();if(t?If.textContent="🤝 IT'S A TIE SHOWDOWN!":(If.textContent=`🏆 ${r.name.toUpperCase()} WINS!`,Ee.playVictoryFanfare(),Ji({particleCount:180,spread:120,origin:{y:.5},colors:[r.color,"#ffd700","#ffffff"]})),NA.textContent="FINAL SHOWDOWN LEADERBOARD",Yh){Yh.innerHTML="";const i=["🥇","🥈","🥉","🎖️","🎖️","🎖️","🎖️","🎖️"];e.forEach((n,s)=>{const a=document.createElement("div");a.className=`team-result-box ${s===0&&!t?"winner-box":""}`,a.style.setProperty("--team-color",n.color),a.innerHTML=`
+function Wv(r,e){qs();const t=He.currentQuestion,i=He.activeTeam;Mt.setRevealed(!0),Mt.triggerEvent("ROUND_REVEAL",{isCorrect:r,selectedIndex:e,question:t,team:i}),Ee.playShatter(),r?(Ee.playCorrect(),Ji({particleCount:85,spread:90,origin:{y:.6},colors:[i.color,"#ffbe0b","#d4af37","#ffffff"]})):Ee.playWrong(),Array.from(ml.children).forEach((a,o)=>{o===t.correctIndex?a.classList.add("correct"):o===e&&a.classList.add("wrong")}),pl&&(pl.style.display="none"),Od&&(Od.style.display="none"),Ov.textContent=t.revealTitle;const n=He.history[He.history.length-1],s=n?n.pointsEarned:0;r?(wf.className="reveal-status success",Sf.textContent="🎉",Ef.textContent=`${i.name} NAILED IT! (+${s} PTS)`):(wf.className="reveal-status fail",Sf.textContent="❌",Ef.textContent=`${i.name} MISSED! (Actual: ${t.options[t.correctIndex]})`),CA.textContent=t.revealTitle,RA.textContent=t.revealExplanation,IA.textContent=t.funFact,Nv.textContent=He.currentIndex<He.totalQuestions-1?"NEXT TEAM TURN ➡️":"VIEW FINAL WINNER 🏆",Uv.classList.add("active"),Vv(),intermissionReadies.clear(),renderIntermissionReadyBox()}function ZA(){qs();const{winner:r,leaderboard:e,isTie:t}=He.getWinner();if(t?If.textContent="🤝 IT'S A TIE SHOWDOWN!":(If.textContent=`🏆 ${r.name.toUpperCase()} WINS!`,Ee.playVictoryFanfare(),Ji({particleCount:180,spread:120,origin:{y:.5},colors:[r.color,"#ffd700","#ffffff"]})),NA.textContent="FINAL SHOWDOWN LEADERBOARD",Yh){Yh.innerHTML="";const i=["🥇","🥈","🥉","🎖️","🎖️","🎖️","🎖️","🎖️"];e.forEach((n,s)=>{const a=document.createElement("div");a.className=`team-result-box ${s===0&&!t?"winner-box":""}`,a.style.setProperty("--team-color",n.color),a.innerHTML=`
         <span class="team-rank-badge">${i[s]||"🎖️"}</span>
         <div class="team-res-header" style="color:${n.color}; font-weight:900;">${n.name}</div>
         <div class="team-res-score" style="color:${n.color}; font-size:1.6rem; font-weight:900; margin:6px 0;">${n.score} PTS</div>
