@@ -4223,7 +4223,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     this.currentLobby=null;
     this.currentLobbyId=null;
     this.listeners=[];
-    this.broadcastChannel=null;
+    this.broadcastChannel=null;this.clientId="client_"+Math.random().toString(36).substring(2,10);this.localPlayerId=null;
     this._initBroadcastChannel();
   }
   _initBroadcastChannel(){
@@ -4256,6 +4256,19 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
   }
   getCurrentLobby(){return this.currentLobby}
   isHost(){return this.isHostRole}
+  getLocalPlayerTeamId(){
+    if(this.currentLobby&&this.currentLobby.players){
+      const id=this.localPlayerId||(this.localPlayer?this.localPlayer.id:null);
+      if(id&&this.currentLobby.players[id]){
+        return this.currentLobby.players[id].teamId;
+      }
+    }
+    return this.isHostRole?0:1;
+  }
+  isMyTurn(activeTeamIndex){
+    if(!this.currentLobby)return!0;
+    return this.getLocalPlayerTeamId()===activeTeamIndex;
+  }
   generateLobbyID(){
     const e=["STEAM","FOLEY","GEAR","BRASS","CLOCK","SONIC"],
           t=e[Math.floor(Math.random()*e.length)],
@@ -4263,7 +4276,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     return`${t}-${n}`;
   }
   async createLobby(e,t,n=[],i="classic"){
-    this.localPlayer=e;
+    this.localPlayer=e;this.localPlayerId=e.id;
     this.isHostRole=!0;
     this.currentLobbyId=this.generateLobbyID();
     const s=Math.max(2,n.length),
@@ -4338,7 +4351,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     });
   }
   async joinLobby(e,t){
-    this.localPlayer=t;
+    this.localPlayer=t;this.localPlayerId=t.id;
     this.isHostRole=!1;
     const n=e.trim().toUpperCase();
     this.currentLobbyId=n;
@@ -4417,7 +4430,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     });
   }
   _handleIncomingP2PMessage(e,t){
-    if(!e||typeof e!="object")return;
+    if(!e||typeof e!="object"||e._sender===this.clientId)return;
     switch(e.type){
       case"STATE_UPDATE":
         if(e.lobby&&(e.lobby.id===this.currentLobbyId||!this.currentLobbyId)){
@@ -4530,7 +4543,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
   }
   _broadcastLobbyState(extraMsg=null){
     if(!this.currentLobby)return;
-    const e={type:"STATE_UPDATE",lobby:this.currentLobby,_time:Date.now()};
+    const e={type:"STATE_UPDATE",lobby:this.currentLobby,_sender:this.clientId,_time:Date.now()};
     this.peerConnections.forEach(t=>{
       if(t&&t.open){
         try{
@@ -4550,7 +4563,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     }catch(err){}
   }
   async sendAction(e,t={}){
-    const actionMsg={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId,_time:Date.now()};
+    const actionMsg={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId,_sender:this.clientId,_time:Date.now()};
     if(this.isHostRole){
       this._applyAction(e,t);
       this._broadcastLobbyState(actionMsg);
@@ -4732,7 +4745,7 @@ function triggerTelevisorDecision(optIndex, actorName){
 function Xd(){qs();const r=Ve.currentQuestion;if(!r)return;Hy(),yl.style.display="block",Wd.style.display="none",Uy.classList.remove("active"),wo.disabled=!1,wo.style.opacity="1";const e=Ve.getInitialRoundTime();Eo.style.width="100%",Eo.style.backgroundColor=Ve.activeTeam.color,Ms.textContent=`⏳ ${Math.ceil(e)}s`,Ms.style.color="var(--primary)",Ms.style.borderColor="var(--primary)",A1.textContent=r.soundHint;let turnPrompt="What is making this sound?",isMyTurn=!0;if(Fn.currentLobby){const user=Ut.getUser(),myPlayer=user&&Fn.currentLobby.players?Fn.currentLobby.players[user.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Fn.isHost()?0:1);isMyTurn=(myTeamId===Ve.activeTeamIndex);turnPrompt=isMyTurn?`👉 YOUR TURN! [${Ve.activeTeam.name}] — Listen & guess!`:`⏳ [${Ve.activeTeam.name}]'s Turn — Waiting for guess...`}ky.textContent=turnPrompt,_l.innerHTML="",r.options.forEach((n,i)=>{const s=document.createElement("div");s.className="option-card"+(isMyTurn?"":" not-your-turn spectator-option");s.id=`option-card-${i}`;if(!isMyTurn){s.style.opacity="0.75";s.style.cursor="not-allowed"}s.innerHTML=`
       <div class="opt-letter">${String.fromCharCode(65+i)}</div>
       <div class="opt-text">${n}</div>
-    `,s.addEventListener("click",()=>{if(Fn.currentLobby&&!isMyTurn){return}po(i)}),_l.appendChild(s)});renderTelevisorOptions(r, activePlayer, isMyTurn);const t=dt.getActivePack();St.loadThemeScene(r,t),St.setRevealed(!1),St.setMediaForTheme(r),Q1(r)}function Q1(r){oh(1),St.triggerEvent("BROADCAST_PULSE",{stage:1,question:r}),Ae.playSoundForQuestion(r);const e=setTimeout(()=>{oh(2),St.triggerEvent("BROADCAST_PULSE",{stage:2,question:r}),Ae.playSoundForQuestion(r)},1800);Rs.push(e);const t=setTimeout(()=>{oh(3),St.triggerEvent("BROADCAST_PULSE",{stage:3,question:r}),Ae.playSoundForQuestion(r)},3600);Rs.push(t);const n=setTimeout(()=>{Vh()},5400);Rs.push(n)}function oh(r){E1.textContent=`HEARING SOUND (BROADCAST ${r} OF 3)...`,w1.style.width=`${r*33.33}%`;let e="";for(let t=0;t<3;t++)e+=t<r?"● ":"○ ";S1.textContent=e.trim(),T1.textContent=`(${r} of 3)`}function Vh(){if(!(!Ve||Ve.isRevealed))if(Rs.forEach(r=>clearTimeout(r)),Rs=[],Ve.unlockChoosingPhase(),yl.style.display="none",Wd.style.display="block",Ae.playClick(),Ve.mode!=="zen"&&!Ao){const r=Ve.getInitialRoundTime();Ve.timeRemaining=r,Ao=setInterval(()=>{const e=Ve.decrementTimer(.1),t=Ve.timeRemaining/r*100;Eo.style.width=`${t}%`;const n=Math.ceil(Ve.timeRemaining);Ms.textContent=`⏳ ${n}s`,n<=5&&n!==Uh&&n>0&&(Uh=n,Ae.playTimerTick()),Ve.timeRemaining<4&&(Eo.style.backgroundColor="var(--error)",Ms.style.color="var(--error)",Ms.style.borderColor="var(--error)"),e&&Vy(!1,-1)},100)}else Ve.mode==="zen"&&(Eo.style.width="100%",Ms.textContent="⏳ UNTIMED")}function po(r){if(!Ve||Ve.isRevealed||Ve.eliminatedIndices.has(r))return;if(Fn.currentLobby){const user=Ut.getUser(),myPlayer=user&&Fn.currentLobby.players?Fn.currentLobby.players[user.id]:null,myTeamId=myPlayer?myPlayer.teamId:(Fn.isHost()?0:1);if(myTeamId!==Ve.activeTeamIndex&&r!==-1)return;const optEl=document.getElementById(`option-card-${r}`);optEl&&optEl.classList.add("chosen-by-player");const e=Ve.submitAnswer(r);St.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:Ve.activeTeam}),Vy(e,r),Fn.sendAction("SUBMIT_GUESS",{optionIndex:r,isCorrect:e,teamIndex:Ve.activeTeamIndex});return}const e=Ve.submitAnswer(r);St.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:Ve.activeTeam}),Vy(e,r)}
+    `,s.addEventListener("click",()=>{if(Fn.currentLobby&&!isMyTurn){return}po(i)}),_l.appendChild(s)});renderTelevisorOptions(r, activePlayer, isMyTurn);const t=dt.getActivePack();St.loadThemeScene(r,t),St.setRevealed(!1),St.setMediaForTheme(r),Q1(r)}function Q1(r){oh(1),St.triggerEvent("BROADCAST_PULSE",{stage:1,question:r}),Ae.playSoundForQuestion(r);const e=setTimeout(()=>{oh(2),St.triggerEvent("BROADCAST_PULSE",{stage:2,question:r}),Ae.playSoundForQuestion(r)},1800);Rs.push(e);const t=setTimeout(()=>{oh(3),St.triggerEvent("BROADCAST_PULSE",{stage:3,question:r}),Ae.playSoundForQuestion(r)},3600);Rs.push(t);const n=setTimeout(()=>{Vh()},5400);Rs.push(n)}function oh(r){E1.textContent=`HEARING SOUND (BROADCAST ${r} OF 3)...`,w1.style.width=`${r*33.33}%`;let e="";for(let t=0;t<3;t++)e+=t<r?"● ":"○ ";S1.textContent=e.trim(),T1.textContent=`(${r} of 3)`}function Vh(){if(!(!Ve||Ve.isRevealed))if(Rs.forEach(r=>clearTimeout(r)),Rs=[],Ve.unlockChoosingPhase(),yl.style.display="none",Wd.style.display="block",Ae.playClick(),Ve.mode!=="zen"&&!Ao){const r=Ve.getInitialRoundTime();Ve.timeRemaining=r,Ao=setInterval(()=>{const e=Ve.decrementTimer(.1),t=Ve.timeRemaining/r*100;Eo.style.width=`${t}%`;const n=Math.ceil(Ve.timeRemaining);Ms.textContent=`⏳ ${n}s`,n<=5&&n!==Uh&&n>0&&(Uh=n,Ae.playTimerTick()),Ve.timeRemaining<4&&(Eo.style.backgroundColor="var(--error)",Ms.style.color="var(--error)",Ms.style.borderColor="var(--error)"),e&&Vy(!1,-1)},100)}else Ve.mode==="zen"&&(Eo.style.width="100%",Ms.textContent="⏳ UNTIMED")}function po(r){if(!Ve||Ve.isRevealed||Ve.eliminatedIndices.has(r))return;if(Fn.currentLobby){const isMyTurn=Fn.isMyTurn(Ve.activeTeamIndex);if(!isMyTurn&&r!==-1)return;const optEl=document.getElementById(`option-card-${r}`);optEl&&optEl.classList.add("chosen-by-player");const e=Ve.submitAnswer(r);St.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:Ve.activeTeam}),Vy(e,r),Fn.sendAction("SUBMIT_GUESS",{optionIndex:r,isCorrect:e,teamIndex:Ve.activeTeamIndex});return}const e=Ve.submitAnswer(r);St.triggerEvent("ANSWER_SUBMIT",{index:r,isCorrect:e,team:Ve.activeTeam}),Vy(e,r)}
 let intermissionReadies = new Set();
 function renderIntermissionReadyBox(){
   const box = document.getElementById("multiplayer-ready-status-box");
