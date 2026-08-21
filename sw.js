@@ -1,4 +1,4 @@
-const CACHE_NAME = 'guessound-pwa-v1.2.5';
+const CACHE_NAME = 'guessound-pwa-v1.2.6';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
