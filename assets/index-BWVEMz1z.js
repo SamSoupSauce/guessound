@@ -4445,7 +4445,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
       case"ACTION":
         if(this.isHostRole&&this.currentLobby&&(e.lobbyId===this.currentLobbyId||!e.lobbyId)){
           this._applyAction(e.action,e.payload);
-          this._broadcastLobbyState();
+          this._broadcastLobbyState(e);
           this._notifyListeners();
         }
         if(typeof window!=="undefined"){
@@ -4457,15 +4457,27 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
             }
             typeof triggerTelevisorDecision==="function"&&triggerTelevisorDecision(e.payload.optionIndex, pName);
             if(typeof Ve!=="undefined"&&Ve&&!Ve.isRevealed){
-              const isCorrect=Ve.submitAnswer(e.payload.optionIndex);
+              const isCorrect=(typeof e.payload?.isCorrect==="boolean")?e.payload.isCorrect:Ve.submitAnswer(e.payload.optionIndex);
               typeof Vy==="function"&&Vy(isCorrect,e.payload.optionIndex);
             }
+          }else if(e.action==="PLAYER_READY"&&e.payload?.playerId){
+            if(typeof intermissionReadies!=="undefined"){
+              intermissionReadies.add(e.payload.playerId);
+              typeof renderIntermissionReadyBox==="function"&&renderIntermissionReadyBox();
+            }
           }else if(e.action==="NEXT_ROUND"){
+            if(typeof intermissionReadies!=="undefined"){
+              intermissionReadies.clear();
+            }
             if(typeof Ve!=="undefined"&&Ve){
               typeof qs==="function"&&qs();
               Ve.nextQuestion();
               Ve.isGameOver?(typeof Z1==="function"&&Z1()):(typeof Xd==="function"&&Xd());
             }
+          }else if(e.action==="START_GAME"&&e.payload?.questions){
+            if(typeof Ar!=="undefined"&&Ar) Ar.classList.remove("active");
+            if(typeof hn!=="undefined"&&hn) hn.classList.remove("active");
+            if(typeof zy==="function") zy(e.payload.questions, e.payload.teams);
           }
         }
         break;
@@ -4516,34 +4528,42 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     this.currentLobby.version=(this.currentLobby.version||1)+1;
     this.currentLobby.updatedAt=new Date().toISOString();
   }
-  _broadcastLobbyState(){
+  _broadcastLobbyState(extraMsg=null){
     if(!this.currentLobby)return;
     const e={type:"STATE_UPDATE",lobby:this.currentLobby,_time:Date.now()};
     this.peerConnections.forEach(t=>{
       if(t&&t.open){
-        try{t.send(e)}catch(n){console.warn("[P2P Host] Send failed to peer:",t.peer,n)}
+        try{
+          t.send(e);
+          if(extraMsg)t.send(extraMsg);
+        }catch(n){console.warn("[P2P Host] Send failed to peer:",t.peer,n)}
       }
     });
     if(this.broadcastChannel){
-      try{this.broadcastChannel.postMessage(e)}catch(n){}
+      try{
+        this.broadcastChannel.postMessage(e);
+        if(extraMsg)this.broadcastChannel.postMessage(extraMsg);
+      }catch(n){}
     }
-    try{localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(e))}catch(err){}
+    try{
+      localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(extraMsg||e));
+    }catch(err){}
   }
   async sendAction(e,t={}){
+    const actionMsg={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId,_time:Date.now()};
     if(this.isHostRole){
       this._applyAction(e,t);
-      this._broadcastLobbyState();
+      this._broadcastLobbyState(actionMsg);
       this._notifyListeners();
       return{success:!0,lobby:this.currentLobby};
     }
-    const n={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId,_time:Date.now()};
     if(this.hostConnection&&this.hostConnection.open){
-      try{this.hostConnection.send(n)}catch(err){console.warn("sendAction error:",err)}
+      try{this.hostConnection.send(actionMsg)}catch(err){console.warn("sendAction error:",err)}
     }
     if(this.broadcastChannel){
-      try{this.broadcastChannel.postMessage(n)}catch(err){}
+      try{this.broadcastChannel.postMessage(actionMsg)}catch(err){}
     }
-    try{localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(n))}catch(err){}
+    try{localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(actionMsg))}catch(err){}
     return{success:!0};
   }
   async uploadBase64Sound(e,t,n,i=null){
