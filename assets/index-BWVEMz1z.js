@@ -4227,10 +4227,22 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     this._initBroadcastChannel();
   }
   _initBroadcastChannel(){
-    typeof window<"u"&&"BroadcastChannel"in window&&(
-      this.broadcastChannel=new BroadcastChannel("guessound_p2p_channel"),
-      this.broadcastChannel.onmessage=e=>{this._handleIncomingP2PMessage(e.data,"local_broadcast")}
-    );
+    if(typeof window<"u"){
+      try{
+        if("BroadcastChannel"in window){
+          this.broadcastChannel=new BroadcastChannel("guessound_p2p_channel");
+          this.broadcastChannel.onmessage=e=>{this._handleIncomingP2PMessage(e.data,"local_broadcast")};
+        }
+      }catch(e){}
+      window.addEventListener("storage",e=>{
+        if(e.key&&e.key.startsWith("guessound_p2p_msg_")&&e.newValue){
+          try{
+            const msg=JSON.parse(e.newValue);
+            this._handleIncomingP2PMessage(msg,"storage_relay");
+          }catch(err){}
+        }
+      });
+    }
   }
   addListener(e){
     this.listeners.push(e);
@@ -4282,7 +4294,58 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     return new Promise(t=>{
       const n=`guessound_${e.toLowerCase().replace(/[^a-z0-9]/g,"_")}`;
       if(this.peer)try{this.peer.destroy()}catch{}
-      this.peer=new tm(n,{
+      try{
+        this.peer=new tm(n,{
+          debug:1,
+          config:{
+            iceServers:[
+              {urls:"stun:stun.l.google.com:19302"},
+              {urls:"stun:stun1.l.google.com:19302"},
+              {urls:"stun:stun2.l.google.com:19302"},
+              {urls:"stun:stun.cloudflare.com:3478"},
+              {urls:"stun:global.stun.twilio.com:3478"}
+            ]
+          }
+        });
+        this.peer.on("open",i=>{
+          console.log(`[P2P Host] WebRTC Peer online as room "${e}" (PeerID: ${i})`);
+          t(i);
+        });
+        this.peer.on("connection",i=>{
+          console.log(`[P2P Host] Remote Peer connected: ${i.peer}`);
+          this.peerConnections.set(i.peer,i);
+          const sendState=()=>{
+            try{i.send({type:"STATE_UPDATE",lobby:this.currentLobby,_time:Date.now()})}catch(err){}
+          };
+          if(i.open)sendState();
+          else i.on("open",sendState);
+          i.on("data",s=>{this._handleIncomingP2PMessage(s,i.peer)});
+          i.on("close",()=>{
+            console.log(`[P2P Host] Remote Peer disconnected: ${i.peer}`);
+            this.peerConnections.delete(i.peer);
+          });
+          i.on("error",s=>{console.warn(`[P2P Host] Peer ${i.peer} error:`,s)});
+        });
+        this.peer.on("error",i=>{
+          console.warn("[P2P Host] PeerJS connection notice:",i);
+          t(e);
+        });
+      }catch(err){
+        console.warn("Peer creation failed, fallback active:",err);
+        t(e);
+      }
+      setTimeout(()=>t(e),2000);
+    });
+  }
+  async joinLobby(e,t){
+    this.localPlayer=t;
+    this.isHostRole=!1;
+    const n=e.trim().toUpperCase();
+    this.currentLobbyId=n;
+    const i=`guessound_${n.toLowerCase().replace(/[^a-z0-9]/g,"_")}`;
+    if(this.peer)try{this.peer.destroy()}catch{}
+    try{
+      this.peer=new tm({
         debug:1,
         config:{
           iceServers:[
@@ -4294,51 +4357,9 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
           ]
         }
       });
-      this.peer.on("open",i=>{
-        console.log(`[P2P Host] WebRTC Peer online as room "${e}" (PeerID: ${i})`);
-        t(i);
-      });
-      this.peer.on("connection",i=>{
-        console.log(`[P2P Host] Remote Peer connected: ${i.peer}`);
-        this.peerConnections.set(i.peer,i);
-        const sendState=()=>{
-          try{i.send({type:"STATE_UPDATE",lobby:this.currentLobby})}catch(e){console.warn("[P2P Host] Could not send initial state:",e)}
-        };
-        if(i.open)sendState();
-        else i.on("open",sendState);
-        i.on("data",s=>{this._handleIncomingP2PMessage(s,i.peer)});
-        i.on("close",()=>{
-          console.log(`[P2P Host] Remote Peer disconnected: ${i.peer}`);
-          this.peerConnections.delete(i.peer);
-        });
-        i.on("error",s=>{console.warn(`[P2P Host] Peer ${i.peer} error:`,s)});
-      });
-      this.peer.on("error",i=>{
-        console.warn("[P2P Host] PeerJS connection notice:",i);
-        t(e);
-      });
-      setTimeout(()=>t(e),2500);
-    });
-  }
-  async joinLobby(e,t){
-    this.localPlayer=t;
-    this.isHostRole=!1;
-    const n=e.trim().toUpperCase();
-    this.currentLobbyId=n;
-    const i=`guessound_${n.toLowerCase().replace(/[^a-z0-9]/g,"_")}`;
-    if(this.peer)try{this.peer.destroy()}catch{}
-    this.peer=new tm({
-      debug:1,
-      config:{
-        iceServers:[
-          {urls:"stun:stun.l.google.com:19302"},
-          {urls:"stun:stun1.l.google.com:19302"},
-          {urls:"stun:stun2.l.google.com:19302"},
-          {urls:"stun:stun.cloudflare.com:3478"},
-          {urls:"stun:global.stun.twilio.com:3478"}
-        ]
-      }
-    });
+    }catch(err){
+      console.warn("Peer init warning:",err);
+    }
     return new Promise((resolve,reject)=>{
       let resolved=!1;
       const onStateReceived=()=>{
@@ -4347,35 +4368,49 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
           resolve({success:!0,lobby:this.currentLobby});
         }
       };
-      this.peer.on("open",()=>{
-        console.log(`[P2P Client] Connecting to Host "${n}" at ${i}...`);
-        const o=this.peer.connect(i,{reliable:!0});
-        this.hostConnection=o;
-        const sendJoin=()=>{
-          console.log("[P2P Client] WebRTC Direct DataChannel connected to Host! Sending JOIN_REQUEST...");
-          try{o.send({type:"JOIN_REQUEST",user:t,lobbyId:n})}catch(err){console.warn("sendJoin error:",err)}
-        };
-        if(o.open)sendJoin();
-        else o.on("open",sendJoin);
-        o.on("data",a=>{
-          this._handleIncomingP2PMessage(a,"host");
-          onStateReceived();
+      const sendJoin=()=>{
+        const req={type:"JOIN_REQUEST",user:t,lobbyId:n,_time:Date.now()};
+        if(this.hostConnection&&this.hostConnection.open){
+          try{this.hostConnection.send(req)}catch(err){}
+        }
+        if(this.broadcastChannel){
+          try{this.broadcastChannel.postMessage(req)}catch(err){}
+        }
+        try{localStorage.setItem("guessound_p2p_msg_"+n,JSON.stringify(req))}catch(err){}
+      };
+      if(this.peer){
+        this.peer.on("open",()=>{
+          console.log(`[P2P Client] Connecting to Host "${n}" at ${i}...`);
+          const o=this.peer.connect(i,{reliable:!0});
+          this.hostConnection=o;
+          if(o.open)sendJoin();
+          else o.on("open",sendJoin);
+          o.on("data",a=>{
+            this._handleIncomingP2PMessage(a,"host");
+            onStateReceived();
+          });
+          o.on("error",a=>{console.warn("[P2P Client] Connection notice:",a)});
         });
-        o.on("error",a=>{console.warn("[P2P Client] Connection error:",a)});
-      });
-      this.peer.on("error",err=>{
-        console.warn("[P2P Client] Peer error:",err);
-      });
-      if(this.broadcastChannel){
-        this.broadcastChannel.postMessage({type:"JOIN_REQUEST",user:t,lobbyId:n});
+        this.peer.on("error",err=>{
+          console.warn("[P2P Client] Peer notice:",err);
+        });
       }
+      sendJoin();
+      const pollInterval=setInterval(()=>{
+        if(!resolved){
+          sendJoin();
+        }else{
+          clearInterval(pollInterval);
+        }
+      },1000);
       setTimeout(()=>{
+        clearInterval(pollInterval);
         if(!resolved){
           if(this.currentLobby){
             resolved=!0;
             resolve({success:!0,lobby:this.currentLobby});
           }else{
-            reject(new Error(`Could not find or connect to host for room "${n}". Please verify the room code and ensure the host is waiting in the lobby.`));
+            reject(new Error(`Could not connect to room "${n}". Please verify the room code and ensure the host is waiting in the lobby.`));
           }
         }
       },12000);
@@ -4385,14 +4420,14 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     if(!e||typeof e!="object")return;
     switch(e.type){
       case"STATE_UPDATE":
-        if(e.lobby){
+        if(e.lobby&&(e.lobby.id===this.currentLobbyId||!this.currentLobbyId)){
           this.currentLobby=e.lobby;
           this.currentLobbyId=e.lobby.id;
           this._notifyListeners();
         }
         break;
       case"JOIN_REQUEST":
-        if(this.isHostRole&&this.currentLobby&&e.user){
+        if(this.isHostRole&&this.currentLobby&&e.user&&(e.lobbyId===this.currentLobbyId||!e.lobbyId)){
           const n=e.user,i={};
           Object.values(this.currentLobby.players).forEach(a=>{i[a.teamId]=(i[a.teamId]||0)+1});
           let s=0,o=999;
@@ -4408,7 +4443,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
         }
         break;
       case"ACTION":
-        if(this.isHostRole&&this.currentLobby){
+        if(this.isHostRole&&this.currentLobby&&(e.lobbyId===this.currentLobbyId||!e.lobbyId)){
           this._applyAction(e.action,e.payload);
           this._broadcastLobbyState();
           this._notifyListeners();
@@ -4427,6 +4462,8 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
         this.currentLobby.game.currentRound=1;
         this.currentLobby.game.broadcastStage=1;
         this.currentLobby.game.activeTeamIndex=0;
+        if(t.questions&&t.questions.length>0)this.currentLobby.game.questions=t.questions;
+        if(t.teams&&t.teams.length>0)this.currentLobby.teams=t.teams;
         t.question&&(this.currentLobby.game.currentQuestion=t.question);
         break;
       case"AUDIO_BROADCAST":
@@ -4461,7 +4498,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
   }
   _broadcastLobbyState(){
     if(!this.currentLobby)return;
-    const e={type:"STATE_UPDATE",lobby:this.currentLobby};
+    const e={type:"STATE_UPDATE",lobby:this.currentLobby,_time:Date.now()};
     this.peerConnections.forEach(t=>{
       if(t&&t.open){
         try{t.send(e)}catch(n){console.warn("[P2P Host] Send failed to peer:",t.peer,n)}
@@ -4470,6 +4507,7 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
     if(this.broadcastChannel){
       try{this.broadcastChannel.postMessage(e)}catch(n){}
     }
+    try{localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(e))}catch(err){}
   }
   async sendAction(e,t={}){
     if(this.isHostRole){
@@ -4478,13 +4516,14 @@ a=extmap-allow-mixed`)!==-1){const s=i.sdp.split(`
       this._notifyListeners();
       return{success:!0,lobby:this.currentLobby};
     }
-    const n={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId};
+    const n={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId,_time:Date.now()};
     if(this.hostConnection&&this.hostConnection.open){
       try{this.hostConnection.send(n)}catch(err){console.warn("sendAction error:",err)}
     }
     if(this.broadcastChannel){
       try{this.broadcastChannel.postMessage(n)}catch(err){}
     }
+    try{localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(n))}catch(err){}
     return{success:!0};
   }
   async uploadBase64Sound(e,t,n,i=null){
@@ -4576,8 +4615,8 @@ const Fn=new t1,ds=100*1024*1024;class n1{constructor(){this.packData={name:"",d
         <button class="btn-secondary btn-export-pack" data-id="${t.id}" title="Export JSON">📤</button>
         ${t.isBuiltIn?"":`<button class="btn-secondary btn-delete-pack" data-id="${t.id}" style="color:var(--error);" title="Delete">🗑️</button>`}
       </div>
-    `;const s=i.querySelector(".btn-select-pack");s&&s.addEventListener("click",()=>{dt.setActivePack(t.id),Ae.playClick()});const o=i.querySelector(".btn-export-pack");o&&o.addEventListener("click",()=>Oy(t.id));const a=i.querySelector(".btn-delete-pack");a&&a.addEventListener("click",()=>{confirm(`Delete sound pack "${t.name}"?`)&&dt.deletePack(t.id)}),Rm.appendChild(i)})}function Gh(){Dh.innerHTML="";const r=dt.getAllPacks(),e=dt.getActivePack();r.forEach(t=>{const n=document.createElement("option");n.value=t.id,n.textContent=`${t.name} (${t.sounds.length} sounds)`,t.id===e.id&&(n.selected=!0),Dh.appendChild(n)})}function Oy(r){var o;const e=dt.exportPackToJSON(r),t=dt.getAllPacks().find(a=>a.id===r)||dt.getActivePack(),n=new Blob([e],{type:"application/json"}),i=URL.createObjectURL(n),s=document.createElement("a");s.href=i,s.download=`sound_pack_${t.name.toLowerCase().replace(/[^a-z0-9]/g,"_")}.json`,document.body.appendChild(s),s.click(),document.body.removeChild(s),URL.revokeObjectURL(i),(o=navigator.clipboard)==null||o.writeText(e).then(()=>{alert(`Pack "${t.name}" exported! JSON downloaded and copied to clipboard.`)}).catch(()=>{alert(`Pack "${t.name}" exported and downloaded!`)})}function j1(){document.querySelectorAll(".mode-chip").forEach(p=>{p.addEventListener("click",()=>{const g=p.dataset.mode;ql=g,document.querySelectorAll(".mode-chip").forEach(v=>{v.dataset.mode===g?v.classList.add("active"):v.classList.remove("active")}),Ae.playClick()})}),Di&&Di.addEventListener("click",()=>{Cr(()=>{ys.classList.add("active"),Ae.playClick()})}),g1.addEventListener("click",()=>{Cr(()=>{ys.classList.add("active"),Ae.playClick()})}),d1.addEventListener("click",()=>{ys.classList.remove("active")}),f1.addEventListener("click",()=>{ys.classList.remove("active"),Im.click()}),Mm&&Mm.addEventListener("click",$m),vm&&vm.addEventListener("click",$m),Sm&&Sm.addEventListener("click",qm),xm&&xm.addEventListener("click",qm),p1.addEventListener("click",()=>{Cr(()=>{Ui&&dt.setActivePack(Ui),ys.classList.remove("active"),qo()})}),lm&&lm.addEventListener("click",()=>{Vn.classList.remove("active")});const r=document.getElementById("btn-close-google-picker");r&&r.addEventListener("click",()=>{const p=document.getElementById("google-account-picker-modal");p&&p.classList.remove("active")}),um&&um.addEventListener("click",()=>Ut.openEmailUsernameModal(p=>Tc(p))),Em&&Em.addEventListener("click",()=>{Vh()}),s1.addEventListener("click",Ec),r1.addEventListener("click",()=>th.classList.add("active")),P1.addEventListener("click",()=>th.classList.remove("active")),a1.addEventListener("click",()=>xl.classList.add("active")),G1.addEventListener("click",()=>xl.classList.remove("active"));const e=document.getElementById("tab-home-play"),t=document.getElementById("tab-home-forge"),n=document.getElementById("home-pane-play"),i=document.getElementById("home-pane-forge"),s=p=>{p==="forge"?(e&&e.classList.remove("active"),t&&t.classList.add("active"),n&&(n.style.display="none"),i&&(i.style.display="block"),Dy.updateSizeBudgetUI()):(t&&t.classList.remove("active"),e&&e.classList.add("active"),i&&(i.style.display="none"),n&&(n.style.display="block")),Ae.playClick()};e&&e.addEventListener("click",()=>s("play")),t&&t.addEventListener("click",()=>s("forge"));const o=()=>{Ec(),s("forge"),th.classList.remove("active"),Ss&&Ss.classList.remove("active")},a=document.getElementById("btn-open-lab-hero");a&&a.addEventListener("click",o);const c=document.getElementById("btn-packs-open-lab");c&&c.addEventListener("click",o),c1.addEventListener("click",()=>xr.classList.add("active")),kh.addEventListener("click",()=>xr.classList.remove("active"));const l=document.getElementById("btn-guide-start-game");l&&l.addEventListener("click",()=>xr.classList.remove("active"));const u=()=>{mr&&mr.classList.remove("active"),Pi&&Pi.classList.remove("active")};Pi&&Pi.addEventListener("click",p=>{p.stopPropagation();const g=mr.classList.toggle("active");Pi.classList.toggle("active",g),Ae.playClick()}),document.addEventListener("click",p=>{mr&&mr.classList.contains("active")&&!mr.contains(p.target)&&!(Pi!=null&&Pi.contains(p.target))&&u()}),Gm&&Gm.addEventListener("click",()=>{u(),openTopicSelector(),Ae.playClick()}),Vm&&Vm.addEventListener("click",()=>{u(),openVault(),Ae.playClick()}),Wm&&Wm.addEventListener("click",()=>{u();const p=document.getElementById("tab-home-forge");p&&p.click(),Ae.playClick()}),Xm&&Xm.addEventListener("click",()=>{u(),xr.classList.add("active"),Ae.playClick()}),kr&&kr.addEventListener("click",()=>{u(),zn.classList.add("active"),Ae.playClick()});const h=()=>{u(),Ut.triggerGoogleSignIn(p=>{Tc(p),Ae.playCorrect(),Qn({particleCount:90,spread:80,origin:{y:.5}})})};om&&om.addEventListener("click",h),am&&am.addEventListener("click",h),cm&&cm.addEventListener("click",h),br&&br.addEventListener("click",h),sm&&sm.addEventListener("click",()=>{Ut.signOut(),Ae.playClick()}),zm&&zm.addEventListener("click",()=>{u(),Ut.signOut(),Ae.playClick()}),rm&&rm.addEventListener("click",()=>Ut.openEmailUsernameModal(p=>Tc(p)));const d=document.getElementById("btn-close-3d-viewer");d&&d.addEventListener("click",()=>sh(!1));const f=document.getElementById("btn-viewer-back-home");f&&f.addEventListener("click",()=>sh(!1));const m=document.getElementById("btn-viewer-back-vault");m&&m.addEventListener("click",()=>sh(!0));const y=document.getElementById("btn-viewer-replay-sound");y&&y.addEventListener("click",()=>{Fh&&Ae.playSoundForQuestion(Fh)}),Fi&&Fi.addEventListener("click",()=>{zn&&zn.classList.add("active")}),km&&km.addEventListener("click",()=>{zn.classList.remove("active")}),Um&&Um.addEventListener("click",()=>{sessionStorage.setItem("pwa_prompt_dismissed","true"),zn.classList.remove("active")}),Bm&&Bm.addEventListener("click",async()=>{const p=/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());if(Mr){zn.classList.remove("active"),Mr.prompt();const{outcome:g}=await Mr.userChoice;console.log(`User PWA response: ${g}`),Mr=null,Fi&&(Fi.style.display="none")}else p&&Nm?Nm.style.display="block":(alert('To install, open your browser menu and tap "Install App" or "Add to Home Screen".'),zn.classList.remove("active"))}),L1.addEventListener("click",()=>Oy(dt.getActivePack().id)),D1.addEventListener("click",()=>{confirm("Reset all sound packs to factory defaults? Custom packs will be replaced.")&&(dt.resetToDefaults(),alert("Sound packs reset to defaults!"))}),Im.addEventListener("click",()=>{oo.style.display="none",nh.value="",Pm.value="",hc.classList.add("active")}),k1.addEventListener("click",()=>hc.classList.remove("active")),U1.addEventListener("click",()=>hc.classList.remove("active")),Pm.addEventListener("change",p=>{const g=p.target.files[0];if(!g)return;const v=new FileReader;v.onload=x=>{nh.value=x.target.result},v.readAsText(g)}),B1.addEventListener("click",()=>{const p=nh.value.trim();if(!p){oo.textContent="Please paste JSON or choose a .json file.",oo.style.display="block";return}try{const g=dt.importPackFromJSON(p);hc.classList.remove("active"),Ae.playCorrect(),alert(`Successfully imported ${g.length} sound pack(s)! Active pack switched to "${g[0].name}".`)}catch(g){oo.textContent=`Import error: ${g.message}`,oo.style.display="block",Ae.playWrong()}}),wo.addEventListener("click",()=>{if(!Ve||Ve.hintUsed||Ve.isRevealed)return;Ve.use5050Hint().forEach(g=>{const v=_l.children[g];v&&v.classList.add("eliminated")}),wo.disabled=!0,wo.style.opacity="0.4",Ae.playClick()}),By.addEventListener("click",()=>{qs(),Ve.nextQuestion(),Ve.isGameOver?Z1():Xd()}),O1.addEventListener("click",()=>{vl.classList.remove("active"),Ec()}),F1.addEventListener("click",()=>{vl.classList.remove("active"),qo()}),ro&&ro.addEventListener("change",async p=>{const g=p.target.files[0];if(g)try{yn&&(yn.style.display="inline-flex",yn.textContent="⏳ Encoding File to Base64..."),Sc=await convertFileToBase64(g),yn&&(yn.textContent=`⚡ ${g.name} (${Math.round(g.size/1024)} KB Base64)`),Ae.playClick()}catch(v){alert("Failed to read audio file: "+v.message),yn&&(yn.style.display="none")}}),Qu&&Qu.addEventListener("change",async()=>{var g;const p=Qu.value.trim();if(!p){(g=ro==null?void 0:ro.files)!=null&&g.length||(Sc=null);return}try{yn&&(yn.style.display="inline-flex",yn.textContent="⏳ Fetching & Encoding URL to Base64..."),Sc=await convertAudioUrlToBase64(p),yn&&(yn.textContent="⚡ Web Audio Base64 Encoded")}catch{yn&&(yn.style.display="none")}}),gm&&gm.addEventListener("click",()=>{const p=rh();p&&Ae.playSoundForQuestion(p)}),W1.addEventListener("click",()=>{const p=Dh.value,g=rh();g&&(dt.addSoundToPack(p,g),Ae.playCorrect(),alert(`Sound riddle "${g.title}" saved to sound pack with Base64 audio!`))}),H1.addEventListener("submit",p=>{p.preventDefault();const g=rh();g&&(Ss.classList.remove("active"),zy([g]))}),window.addEventListener("keydown",p=>{if(!Ve||Ve.isRevealed||!Vi.classList.contains("active"))return;const g=p.key.toUpperCase();["A","1"].includes(g)&&po(0),["B","2"].includes(g)&&po(1),["C","3"].includes(g)&&po(2),["D","4"].includes(g)&&po(3),g===" "&&Ve.isListeningPhase&&Vh()})}function rh(){const r=parseInt(document.querySelector('input[name="lab-correct"]:checked').value,10),e=document.getElementById("lab-audio-url").value.trim(),t=parseInt(V1.value,10)||15,n=Sc||(e.length>0?e:null);return{id:`custom_${Date.now()}`,title:document.getElementById("lab-title").value,soundHint:document.getElementById("lab-hint").value,category:document.getElementById("lab-category").value,synthPreset:document.getElementById("lab-synth").value,audioUrl:n,timerSeconds:t,options:[document.getElementById("lab-opt-0").value,document.getElementById("lab-opt-1").value,document.getElementById("lab-opt-2").value,document.getElementById("lab-opt-3").value],correctIndex:r,revealTitle:document.getElementById("lab-rev-title").value,revealExplanation:document.getElementById("lab-rev-desc").value,funFact:document.getElementById("lab-rev-fact").value,sceneModel:document.getElementById("lab-scene").value,difficulty:2}}function K1(){const r=()=>{Cr(()=>{Hh(),Ar.classList.add("active"),Ae.playClick()})},e=document.getElementById("btn-lobby-nav");e&&e.addEventListener("click",r),im&&im.addEventListener("click",r),hm&&hm.addEventListener("click",()=>{Ar.classList.remove("active")}),lc&&vr&&(lc.addEventListener("click",()=>{lc.classList.add("active"),vr.classList.remove("active"),To.classList.add("active"),ml.classList.remove("active"),Ae.playClick()}),vr.addEventListener("click",()=>{vr.classList.add("active"),lc.classList.remove("active"),ml.classList.add("active"),To.classList.remove("active"),Ae.playClick()}));let t=2;Ju&&Ju.querySelectorAll(".team-count-chip").forEach(n=>{n.addEventListener("click",()=>{Ju.querySelectorAll(".team-count-chip").forEach(i=>i.classList.remove("active")),n.classList.add("active"),t=parseInt(n.dataset.count,10)||2,Ae.playClick()})}),fr&&fr.addEventListener("click",async()=>{const n=Ut.getUser();if(!n)return;const i=Mc.value,s=dt.getAllPacks().find(o=>o.id===i)||dt.getActivePack();fr.disabled=!0,fr.innerHTML="<span>⏳ Initializing Serverless P2P Room...</span>";try{await Fn.createLobby(n,s,At.slice(0,t),ql),Ae.playCorrect(),Qn({particleCount:80,spread:80,origin:{y:.5}})}catch(o){alert("Could not create P2P room: "+o.message)}finally{fr.disabled=!1,fr.innerHTML="<span>⚡ CREATE SERVERLESS P2P ROOM</span>"}}),pr&&pr.addEventListener("click",async()=>{const n=Ph.value.trim();if(!n){alert("Please enter a 6-character room code (e.g. STEAM-4821)");return}const i=Ut.getUser();pr.disabled=!0,pr.innerHTML="<span>⏳ Connecting to P2P Room...</span>";try{await Fn.joinLobby(n,i),Ae.playCorrect()}catch(s){alert("Join failed: "+s.message)}finally{pr.disabled=!1,pr.innerHTML="<span>🚪 JOIN P2P WEBRTC ROOM</span>"}}),fm&&fm.addEventListener("click",()=>{var i;if(!Fn.currentLobbyId)return;const n=`${window.location.origin}${window.location.pathname}?lobby=${Fn.currentLobbyId}`;(i=navigator.clipboard)==null||i.writeText(n).then(()=>{alert(`Room link copied to clipboard!
-${n}`)}).catch(()=>{alert(`Room ID: ${Fn.currentLobbyId}`)})}),mm&&mm.addEventListener("click",()=>{Fn.leaveLobby(),ho.style.display="none",fo.style.display="flex",To.classList.add("active"),Ae.playClick()}),gl&&gl.addEventListener("click",()=>{Fn.currentLobby&&(Fn.sendAction("START_GAME",{}),Ar.classList.remove("active"),qo())})}function Hh(){if(!Mc)return;Mc.innerHTML="";const r=dt.getAllPacks(),e=dt.getActivePack();r.forEach(t=>{const n=document.createElement("option");n.value=t.id,n.textContent=`${t.name} (${t.sounds.length} sound riddles)`,t.id===e.id&&(n.selected=!0),Mc.appendChild(n)})}function J1(r){var t;if(!r){ho&&(ho.style.display="none"),fo&&(fo.style.display="flex");return}ho&&(ho.style.display="block"),fo&&(fo.style.display="none"),To&&To.classList.remove("active"),ml&&ml.classList.remove("active"),dm&&(dm.textContent=r.id),pm&&(pm.textContent=`📦 ${r.packName}`),Ku&&(Ku.innerHTML="",Object.values(r.players||{}).forEach(i=>{const s=document.createElement("div");s.className="lobby-player-card";const o=r.teams[i.teamId]||{name:`Team ${i.teamId+1}`,color:"#d4af37"};s.style.setProperty("--team-color",o.color);let a=i.user.picture||"",c=a?`<img class="lobby-player-avatar" src="${a}" alt="${i.user.name}">`:'<span style="font-size:1.4rem;">🧑‍✈️</span>',l=r.teams.map((h,d)=>`<option value="${d}" ${d===i.teamId?"selected":""}>${h.name}</option>`).join("");s.innerHTML=`
+    `;const s=i.querySelector(".btn-select-pack");s&&s.addEventListener("click",()=>{dt.setActivePack(t.id),Ae.playClick()});const o=i.querySelector(".btn-export-pack");o&&o.addEventListener("click",()=>Oy(t.id));const a=i.querySelector(".btn-delete-pack");a&&a.addEventListener("click",()=>{confirm(`Delete sound pack "${t.name}"?`)&&dt.deletePack(t.id)}),Rm.appendChild(i)})}function Gh(){Dh.innerHTML="";const r=dt.getAllPacks(),e=dt.getActivePack();r.forEach(t=>{const n=document.createElement("option");n.value=t.id,n.textContent=`${t.name} (${t.sounds.length} sounds)`,t.id===e.id&&(n.selected=!0),Dh.appendChild(n)})}function Oy(r){var o;const e=dt.exportPackToJSON(r),t=dt.getAllPacks().find(a=>a.id===r)||dt.getActivePack(),n=new Blob([e],{type:"application/json"}),i=URL.createObjectURL(n),s=document.createElement("a");s.href=i,s.download=`sound_pack_${t.name.toLowerCase().replace(/[^a-z0-9]/g,"_")}.json`,document.body.appendChild(s),s.click(),document.body.removeChild(s),URL.revokeObjectURL(i),(o=navigator.clipboard)==null||o.writeText(e).then(()=>{alert(`Pack "${t.name}" exported! JSON downloaded and copied to clipboard.`)}).catch(()=>{alert(`Pack "${t.name}" exported and downloaded!`)})}function j1(){document.querySelectorAll(".mode-chip").forEach(p=>{p.addEventListener("click",()=>{const g=p.dataset.mode;ql=g,document.querySelectorAll(".mode-chip").forEach(v=>{v.dataset.mode===g?v.classList.add("active"):v.classList.remove("active")}),Ae.playClick()})}),Di&&Di.addEventListener("click",()=>{Cr(()=>{ys.classList.add("active"),Ae.playClick()})}),g1.addEventListener("click",()=>{Cr(()=>{ys.classList.add("active"),Ae.playClick()})}),d1.addEventListener("click",()=>{ys.classList.remove("active")}),f1.addEventListener("click",()=>{ys.classList.remove("active"),Im.click()}),Mm&&Mm.addEventListener("click",$m),vm&&vm.addEventListener("click",$m),Sm&&Sm.addEventListener("click",qm),xm&&xm.addEventListener("click",qm),p1.addEventListener("click",()=>{Cr(()=>{Ui&&dt.setActivePack(Ui),ys.classList.remove("active"),qo()})}),lm&&lm.addEventListener("click",()=>{Vn.classList.remove("active")});const r=document.getElementById("btn-close-google-picker");r&&r.addEventListener("click",()=>{const p=document.getElementById("google-account-picker-modal");p&&p.classList.remove("active")}),um&&um.addEventListener("click",()=>Ut.openEmailUsernameModal(p=>Tc(p))),Em&&Em.addEventListener("click",()=>{Vh()}),s1.addEventListener("click",Ec),r1.addEventListener("click",()=>th.classList.add("active")),P1.addEventListener("click",()=>th.classList.remove("active")),a1.addEventListener("click",()=>xl.classList.add("active")),G1.addEventListener("click",()=>xl.classList.remove("active"));const e=document.getElementById("tab-home-play"),t=document.getElementById("tab-home-forge"),n=document.getElementById("home-pane-play"),i=document.getElementById("home-pane-forge"),s=p=>{p==="forge"?(e&&e.classList.remove("active"),t&&t.classList.add("active"),n&&(n.style.display="none"),i&&(i.style.display="block"),Dy.updateSizeBudgetUI()):(t&&t.classList.remove("active"),e&&e.classList.add("active"),i&&(i.style.display="none"),n&&(n.style.display="block")),Ae.playClick()};e&&e.addEventListener("click",()=>s("play")),t&&t.addEventListener("click",()=>s("forge"));const o=()=>{Ec(),s("forge"),th.classList.remove("active"),Ss&&Ss.classList.remove("active")},a=document.getElementById("btn-open-lab-hero");a&&a.addEventListener("click",o);const c=document.getElementById("btn-packs-open-lab");c&&c.addEventListener("click",o),c1.addEventListener("click",()=>xr.classList.add("active")),kh.addEventListener("click",()=>xr.classList.remove("active"));const l=document.getElementById("btn-guide-start-game");l&&l.addEventListener("click",()=>xr.classList.remove("active"));const u=()=>{mr&&mr.classList.remove("active"),Pi&&Pi.classList.remove("active")};Pi&&Pi.addEventListener("click",p=>{p.stopPropagation();const g=mr.classList.toggle("active");Pi.classList.toggle("active",g),Ae.playClick()}),document.addEventListener("click",p=>{mr&&mr.classList.contains("active")&&!mr.contains(p.target)&&!(Pi!=null&&Pi.contains(p.target))&&u()}),Gm&&Gm.addEventListener("click",()=>{u(),openTopicSelector(),Ae.playClick()}),Vm&&Vm.addEventListener("click",()=>{u(),openVault(),Ae.playClick()}),Wm&&Wm.addEventListener("click",()=>{u();const p=document.getElementById("tab-home-forge");p&&p.click(),Ae.playClick()}),Xm&&Xm.addEventListener("click",()=>{u(),xr.classList.add("active"),Ae.playClick()}),kr&&kr.addEventListener("click",()=>{u(),zn.classList.add("active"),Ae.playClick()});const h=()=>{u(),Ut.triggerGoogleSignIn(p=>{Tc(p),Ae.playCorrect(),Qn({particleCount:90,spread:80,origin:{y:.5}})})};om&&om.addEventListener("click",h),am&&am.addEventListener("click",h),cm&&cm.addEventListener("click",h),br&&br.addEventListener("click",h),sm&&sm.addEventListener("click",()=>{Ut.signOut(),Ae.playClick()}),zm&&zm.addEventListener("click",()=>{u(),Ut.signOut(),Ae.playClick()}),rm&&rm.addEventListener("click",()=>Ut.openEmailUsernameModal(p=>Tc(p)));const d=document.getElementById("btn-close-3d-viewer");d&&d.addEventListener("click",()=>sh(!1));const f=document.getElementById("btn-viewer-back-home");f&&f.addEventListener("click",()=>sh(!1));const m=document.getElementById("btn-viewer-back-vault");m&&m.addEventListener("click",()=>sh(!0));const y=document.getElementById("btn-viewer-replay-sound");y&&y.addEventListener("click",()=>{Fh&&Ae.playSoundForQuestion(Fh)}),Fi&&Fi.addEventListener("click",()=>{zn&&zn.classList.add("active")}),km&&km.addEventListener("click",()=>{zn.classList.remove("active")}),Um&&Um.addEventListener("click",()=>{sessionStorage.setItem("pwa_prompt_dismissed","true"),zn.classList.remove("active")}),Bm&&Bm.addEventListener("click",async()=>{const p=/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());if(Mr){zn.classList.remove("active"),Mr.prompt();const{outcome:g}=await Mr.userChoice;console.log(`User PWA response: ${g}`),Mr=null,Fi&&(Fi.style.display="none")}else p&&Nm?Nm.style.display="block":(alert('To install, open your browser menu and tap "Install App" or "Add to Home Screen".'),zn.classList.remove("active"))}),L1.addEventListener("click",()=>Oy(dt.getActivePack().id)),D1.addEventListener("click",()=>{confirm("Reset all sound packs to factory defaults? Custom packs will be replaced.")&&(dt.resetToDefaults(),alert("Sound packs reset to defaults!"))}),Im.addEventListener("click",()=>{oo.style.display="none",nh.value="",Pm.value="",hc.classList.add("active")}),k1.addEventListener("click",()=>hc.classList.remove("active")),U1.addEventListener("click",()=>hc.classList.remove("active")),Pm.addEventListener("change",p=>{const g=p.target.files[0];if(!g)return;const v=new FileReader;v.onload=x=>{nh.value=x.target.result},v.readAsText(g)}),B1.addEventListener("click",()=>{const p=nh.value.trim();if(!p){oo.textContent="Please paste JSON or choose a .json file.",oo.style.display="block";return}try{const g=dt.importPackFromJSON(p);hc.classList.remove("active"),Ae.playCorrect(),alert(`Successfully imported ${g.length} sound pack(s)! Active pack switched to "${g[0].name}".`)}catch(g){oo.textContent=`Import error: ${g.message}`,oo.style.display="block",Ae.playWrong()}}),wo.addEventListener("click",()=>{if(!Ve||Ve.hintUsed||Ve.isRevealed)return;Ve.use5050Hint().forEach(g=>{const v=_l.children[g];v&&v.classList.add("eliminated")}),wo.disabled=!0,wo.style.opacity="0.4",Ae.playClick()}),By.addEventListener("click",()=>{qs(),Ve.nextQuestion(),Ve.isGameOver?Z1():Xd()}),O1.addEventListener("click",()=>{vl.classList.remove("active"),Ec()}),F1.addEventListener("click",()=>{vl.classList.remove("active"),qo()}),ro&&ro.addEventListener("change",async p=>{const g=p.target.files[0];if(g)try{yn&&(yn.style.display="inline-flex",yn.textContent="⏳ Encoding File to Base64..."),Sc=await convertFileToBase64(g),yn&&(yn.textContent=`⚡ ${g.name} (${Math.round(g.size/1024)} KB Base64)`),Ae.playClick()}catch(v){alert("Failed to read audio file: "+v.message),yn&&(yn.style.display="none")}}),Qu&&Qu.addEventListener("change",async()=>{var g;const p=Qu.value.trim();if(!p){(g=ro==null?void 0:ro.files)!=null&&g.length||(Sc=null);return}try{yn&&(yn.style.display="inline-flex",yn.textContent="⏳ Fetching & Encoding URL to Base64..."),Sc=await convertAudioUrlToBase64(p),yn&&(yn.textContent="⚡ Web Audio Base64 Encoded")}catch{yn&&(yn.style.display="none")}}),gm&&gm.addEventListener("click",()=>{const p=rh();p&&Ae.playSoundForQuestion(p)}),W1.addEventListener("click",()=>{const p=Dh.value,g=rh();g&&(dt.addSoundToPack(p,g),Ae.playCorrect(),alert(`Sound riddle "${g.title}" saved to sound pack with Base64 audio!`))}),H1.addEventListener("submit",p=>{p.preventDefault();const g=rh();g&&(Ss.classList.remove("active"),zy([g]))}),window.addEventListener("keydown",p=>{if(!Ve||Ve.isRevealed||!Vi.classList.contains("active"))return;const g=p.key.toUpperCase();["A","1"].includes(g)&&po(0),["B","2"].includes(g)&&po(1),["C","3"].includes(g)&&po(2),["D","4"].includes(g)&&po(3),g===" "&&Ve.isListeningPhase&&Vh()})}function rh(){const r=parseInt(document.querySelector('input[name="lab-correct"]:checked').value,10),e=document.getElementById("lab-audio-url").value.trim(),t=parseInt(V1.value,10)||15,n=Sc||(e.length>0?e:null);return{id:`custom_${Date.now()}`,title:document.getElementById("lab-title").value,soundHint:document.getElementById("lab-hint").value,category:document.getElementById("lab-category").value,synthPreset:document.getElementById("lab-synth").value,audioUrl:n,timerSeconds:t,options:[document.getElementById("lab-opt-0").value,document.getElementById("lab-opt-1").value,document.getElementById("lab-opt-2").value,document.getElementById("lab-opt-3").value],correctIndex:r,revealTitle:document.getElementById("lab-rev-title").value,revealExplanation:document.getElementById("lab-rev-desc").value,funFact:document.getElementById("lab-rev-fact").value,sceneModel:document.getElementById("lab-scene").value,difficulty:2}}function K1(){const r=()=>{Cr(()=>{Hh(),Ar.classList.add("active"),Ae.playClick()})},e=document.getElementById("btn-lobby-nav");e&&e.addEventListener("click",r),im&&im.addEventListener("click",r),hm&&hm.addEventListener("click",()=>{Ar.classList.remove("active")}),lc&&vr&&(lc.addEventListener("click",()=>{lc.classList.add("active"),vr.classList.remove("active"),To.classList.add("active"),ml.classList.remove("active"),Ae.playClick()}),vr.addEventListener("click",()=>{vr.classList.add("active"),lc.classList.remove("active"),ml.classList.add("active"),To.classList.remove("active"),Ae.playClick()}));let t=2;Ju&&Ju.querySelectorAll(".team-count-chip").forEach(n=>{n.addEventListener("click",()=>{Ju.querySelectorAll(".team-count-chip").forEach(i=>i.classList.remove("active")),n.classList.add("active"),t=parseInt(n.dataset.count,10)||2,Ae.playClick()})}),fr&&fr.addEventListener("click",async()=>{let n=Ut.getUser()||Ut.signInAsDemoUser();const i=Mc.value,s=dt.getAllPacks().find(o=>o.id===i)||dt.getActivePack();fr.disabled=!0,fr.innerHTML="<span>⏳ Initializing Serverless P2P Room...</span>";try{await Fn.createLobby(n,s,At.slice(0,t),ql),Ae.playCorrect(),Qn({particleCount:80,spread:80,origin:{y:.5}})}catch(o){alert("Could not create P2P room: "+o.message)}finally{fr.disabled=!1,fr.innerHTML="<span>⚡ CREATE SERVERLESS P2P ROOM</span>"}}),pr&&pr.addEventListener("click",async()=>{const n=Ph.value.trim();if(!n){alert("Please enter a 6-character room code (e.g. STEAM-4821)");return}let i=Ut.getUser()||Ut.signInAsDemoUser();pr.disabled=!0,pr.innerHTML="<span>⏳ Connecting to P2P Room...</span>";try{await Fn.joinLobby(n,i),Ae.playCorrect()}catch(s){alert("Join failed: "+s.message)}finally{pr.disabled=!1,pr.innerHTML="<span>🚪 JOIN P2P WEBRTC ROOM</span>"}}),fm&&fm.addEventListener("click",()=>{var i;if(!Fn.currentLobbyId)return;const n=`${window.location.origin}${window.location.pathname}?lobby=${Fn.currentLobbyId}`;(i=navigator.clipboard)==null||i.writeText(n).then(()=>{alert(`Room link copied to clipboard!
+${n}`)}).catch(()=>{alert(`Room ID: ${Fn.currentLobbyId}`)})}),mm&&mm.addEventListener("click",()=>{Fn.leaveLobby(),ho.style.display="none",fo.style.display="flex",To.classList.add("active"),Ae.playClick()}),gl&&gl.addEventListener("click",()=>{if(Fn.currentLobby){const count=Math.max(6,(Fn.currentLobby.teams||[]).length*3);const qList=dt.getRandomQuestionsFromActive(count);Fn.sendAction("START_GAME",{questions:qList,teams:Fn.currentLobby.teams});Ar&&Ar.classList.remove("active");zy(qList,Fn.currentLobby.teams)}})}function Hh(){if(!Mc)return;Mc.innerHTML="";const r=dt.getAllPacks(),e=dt.getActivePack();r.forEach(t=>{const n=document.createElement("option");n.value=t.id,n.textContent=`${t.name} (${t.sounds.length} sound riddles)`,t.id===e.id&&(n.selected=!0),Mc.appendChild(n)})}function J1(r){var t;if(!r){ho&&(ho.style.display="none"),fo&&(fo.style.display="flex");return}ho&&(ho.style.display="block"),fo&&(fo.style.display="none"),To&&To.classList.remove("active"),ml&&ml.classList.remove("active"),dm&&(dm.textContent=r.id),pm&&(pm.textContent=`📦 ${r.packName}`),Ku&&(Ku.innerHTML="",Object.values(r.players||{}).forEach(i=>{const s=document.createElement("div");s.className="lobby-player-card";const o=r.teams[i.teamId]||{name:`Team ${i.teamId+1}`,color:"#d4af37"};s.style.setProperty("--team-color",o.color);let a=i.user.picture||"",c=a?`<img class="lobby-player-avatar" src="${a}" alt="${i.user.name}">`:'<span style="font-size:1.4rem;">🧑‍✈️</span>',l=r.teams.map((h,d)=>`<option value="${d}" ${d===i.teamId?"selected":""}>${h.name}</option>`).join("");s.innerHTML=`
         ${c}
         <div class="lobby-player-info">
           <div class="lobby-player-name">${i.user.name} ${i.isHost?"👑 (Host)":""}</div>
@@ -4586,7 +4625,7 @@ ${n}`)}).catch(()=>{alert(`Room ID: ${Fn.currentLobbyId}`)})}),mm&&mm.addEventLi
         <select class="lobby-team-select">
           ${l}
         </select>
-      `,s.querySelector(".lobby-team-select").addEventListener("change",h=>{const d=parseInt(h.target.value,10);Fn.sendAction("ASSIGN_TEAM",{playerId:i.user.id,teamId:d})}),Ku.appendChild(s)}));const e=r.hostId===((t=Ut.getUser())==null?void 0:t.id);gl&&(gl.style.display=e?"inline-flex":"none"),r.game&&r.game.status==="BROADCASTING"&&hn.classList.contains("active")&&(Ar.classList.remove("active"),qo())}function qs(){Ao&&(clearInterval(Ao),Ao=null),Rs.forEach(r=>clearTimeout(r)),Rs=[],Uh=-1,Ae.stopQuestionAudio()}function Ec(){qs();const r=document.getElementById("scene-viewer-hud");r&&(r.classList.remove("active"),r.style.display="none"),vl.classList.remove("active"),Vi.classList.remove("active"),hn.classList.add("active");const e=dt.getActivePack();St.loadThemeScene(e.sounds[0]||e,e),St.setRevealed(!0)}const Ym="sexercise_first_session_guide_seen";function Fy(r){if(localStorage.getItem(Ym))r();else{localStorage.setItem(Ym,"true"),xr.classList.add("active");const t=()=>{xr.classList.remove("active"),kh.removeEventListener("click",t);const i=document.getElementById("btn-guide-start-game");i&&i.removeEventListener("click",t),r()};kh.addEventListener("click",t,{once:!0});const n=document.getElementById("btn-guide-start-game");n&&n.addEventListener("click",t,{once:!0})}}function qo(r=null){Fy(()=>{qs();const e=Math.max(6,At.length*3),t=dt.getRandomQuestionsFromActive(e,r);if(t.length===0){alert("No questions found in this pack/category. Please select another.");return}Ve=new X0(t,ql,At),Gy(),hn.classList.remove("active"),Vi.classList.add("active"),Ae.playGearSpin(),Xd()})}function zy(r){Fy(()=>{qs(),Ve=new X0(r,ql,At),Gy(),hn.classList.remove("active"),Vi.classList.add("active"),Ae.playGearSpin(),Xd()})}function Gy(){!Zu||!Ve||(Zu.innerHTML="",Ve.teams.forEach((r,e)=>{const t=document.createElement("div");t.className=`hud-team-score-badge ${e===Ve.activeTeamIndex?"active-turn":""}`,t.id=`hud-team-badge-${e}`,t.style.setProperty("--team-color",r.color);let n="";if(r.avatar)n=`<img class="hud-team-avatar" src="${r.avatar}" alt="${r.name}">`;else{const i=["⚙️","⚡","🦊","🎈","🧪","📻","🕵️","🚀","🏆","🔧"];n=`<span style="font-size:0.95rem;">${i[e%i.length]}</span>`}t.innerHTML=`
+      `,s.querySelector(".lobby-team-select").addEventListener("change",h=>{const d=parseInt(h.target.value,10);Fn.sendAction("ASSIGN_TEAM",{playerId:i.user.id,teamId:d})}),Ku.appendChild(s)}));const e=r.hostId===((t=Ut.getUser())==null?void 0:t.id);gl&&(gl.style.display=e?"inline-flex":"none");if(r.game&&r.game.status==="BROADCASTING"){Ar&&Ar.classList.remove("active");if(!Vi.classList.contains("active")){const qList=(r.game.questions&&r.game.questions.length>0)?r.game.questions:dt.getRandomQuestionsFromActive(6);zy(qList,r.teams)}}}function qs(){Ao&&(clearInterval(Ao),Ao=null),Rs.forEach(r=>clearTimeout(r)),Rs=[],Uh=-1,Ae.stopQuestionAudio()}function Ec(){qs();const r=document.getElementById("scene-viewer-hud");r&&(r.classList.remove("active"),r.style.display="none"),vl.classList.remove("active"),Vi.classList.remove("active"),hn.classList.add("active");const e=dt.getActivePack();St.loadThemeScene(e.sounds[0]||e,e),St.setRevealed(!0)}const Ym="sexercise_first_session_guide_seen";function Fy(r){if(localStorage.getItem(Ym))r();else{localStorage.setItem(Ym,"true"),xr.classList.add("active");const t=()=>{xr.classList.remove("active"),kh.removeEventListener("click",t);const i=document.getElementById("btn-guide-start-game");i&&i.removeEventListener("click",t),r()};kh.addEventListener("click",t,{once:!0});const n=document.getElementById("btn-guide-start-game");n&&n.addEventListener("click",t,{once:!0})}}function qo(r=null){Fy(()=>{qs();const e=Math.max(6,At.length*3),t=dt.getRandomQuestionsFromActive(e,r);if(t.length===0){alert("No questions found in this pack/category. Please select another.");return}Ve=new X0(t,ql,At),Gy(),hn.classList.remove("active"),Vi.classList.add("active"),Ae.playGearSpin(),Xd()})}function zy(r,teams=null){Fy(()=>{qs();const tms=(teams&&teams.length>=2)?teams:At;Ve=new X0(r,ql,tms);Gy();hn.classList.remove("active");Vi.classList.add("active");Ae.playGearSpin();Xd()})}function Gy(){!Zu||!Ve||(Zu.innerHTML="",Ve.teams.forEach((r,e)=>{const t=document.createElement("div");t.className=`hud-team-score-badge ${e===Ve.activeTeamIndex?"active-turn":""}`,t.id=`hud-team-badge-${e}`,t.style.setProperty("--team-color",r.color);let n="";if(r.avatar)n=`<img class="hud-team-avatar" src="${r.avatar}" alt="${r.name}">`;else{const i=["⚙️","⚡","🦊","🎈","🧪","📻","🕵️","🚀","🏆","🔧"];n=`<span style="font-size:0.95rem;">${i[e%i.length]}</span>`}t.innerHTML=`
       ${n}
       <span class="hud-team-score-name" id="hud-name-${e}">${r.name}</span>
       <span class="hud-team-score-pts" id="hud-score-${e}">${r.score} PTS</span>

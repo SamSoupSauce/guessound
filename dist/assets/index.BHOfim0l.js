@@ -4227,10 +4227,22 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
     this._initBroadcastChannel();
   }
   _initBroadcastChannel(){
-    typeof window<"u"&&"BroadcastChannel"in window&&(
-      this.broadcastChannel=new BroadcastChannel("guessound_p2p_channel"),
-      this.broadcastChannel.onmessage=e=>{this._handleIncomingP2PMessage(e.data,"local_broadcast")}
-    );
+    if(typeof window<"u"){
+      try{
+        if("BroadcastChannel"in window){
+          this.broadcastChannel=new BroadcastChannel("guessound_p2p_channel");
+          this.broadcastChannel.onmessage=e=>{this._handleIncomingP2PMessage(e.data,"local_broadcast")};
+        }
+      }catch(e){}
+      window.addEventListener("storage",e=>{
+        if(e.key&&e.key.startsWith("guessound_p2p_msg_")&&e.newValue){
+          try{
+            const msg=JSON.parse(e.newValue);
+            this._handleIncomingP2PMessage(msg,"storage_relay");
+          }catch(err){}
+        }
+      });
+    }
   }
   addListener(e){
     this.listeners.push(e);
@@ -4282,7 +4294,58 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
     return new Promise(t=>{
       const n=`guessound_${e.toLowerCase().replace(/[^a-z0-9]/g,"_")}`;
       if(this.peer)try{this.peer.destroy()}catch{}
-      this.peer=new Km(n,{
+      try{
+        this.peer=new Km(n,{
+          debug:1,
+          config:{
+            iceServers:[
+              {urls:"stun:stun.l.google.com:19302"},
+              {urls:"stun:stun1.l.google.com:19302"},
+              {urls:"stun:stun2.l.google.com:19302"},
+              {urls:"stun:stun.cloudflare.com:3478"},
+              {urls:"stun:global.stun.twilio.com:3478"}
+            ]
+          }
+        });
+        this.peer.on("open",i=>{
+          console.log(`[P2P Host] WebRTC Peer online as room "${e}" (PeerID: ${i})`);
+          t(i);
+        });
+        this.peer.on("connection",i=>{
+          console.log(`[P2P Host] Remote Peer connected: ${i.peer}`);
+          this.peerConnections.set(i.peer,i);
+          const sendState=()=>{
+            try{i.send({type:"STATE_UPDATE",lobby:this.currentLobby,_time:Date.now()})}catch(err){}
+          };
+          if(i.open)sendState();
+          else i.on("open",sendState);
+          i.on("data",s=>{this._handleIncomingP2PMessage(s,i.peer)});
+          i.on("close",()=>{
+            console.log(`[P2P Host] Remote Peer disconnected: ${i.peer}`);
+            this.peerConnections.delete(i.peer);
+          });
+          i.on("error",s=>{console.warn(`[P2P Host] Peer ${i.peer} error:`,s)});
+        });
+        this.peer.on("error",i=>{
+          console.warn("[P2P Host] PeerJS connection notice:",i);
+          t(e);
+        });
+      }catch(err){
+        console.warn("Peer creation failed, fallback active:",err);
+        t(e);
+      }
+      setTimeout(()=>t(e),2000);
+    });
+  }
+  async joinLobby(e,t){
+    this.localPlayer=t;
+    this.isHostRole=!1;
+    const n=e.trim().toUpperCase();
+    this.currentLobbyId=n;
+    const i=`guessound_${n.toLowerCase().replace(/[^a-z0-9]/g,"_")}`;
+    if(this.peer)try{this.peer.destroy()}catch{}
+    try{
+      this.peer=new Km({
         debug:1,
         config:{
           iceServers:[
@@ -4294,51 +4357,9 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
           ]
         }
       });
-      this.peer.on("open",i=>{
-        console.log(`[P2P Host] WebRTC Peer online as room "${e}" (PeerID: ${i})`);
-        t(i);
-      });
-      this.peer.on("connection",i=>{
-        console.log(`[P2P Host] Remote Peer connected: ${i.peer}`);
-        this.peerConnections.set(i.peer,i);
-        const sendState=()=>{
-          try{i.send({type:"STATE_UPDATE",lobby:this.currentLobby})}catch(e){console.warn("[P2P Host] Could not send initial state:",e)}
-        };
-        if(i.open)sendState();
-        else i.on("open",sendState);
-        i.on("data",s=>{this._handleIncomingP2PMessage(s,i.peer)});
-        i.on("close",()=>{
-          console.log(`[P2P Host] Remote Peer disconnected: ${i.peer}`);
-          this.peerConnections.delete(i.peer);
-        });
-        i.on("error",s=>{console.warn(`[P2P Host] Peer ${i.peer} error:`,s)});
-      });
-      this.peer.on("error",i=>{
-        console.warn("[P2P Host] PeerJS connection notice:",i);
-        t(e);
-      });
-      setTimeout(()=>t(e),2500);
-    });
-  }
-  async joinLobby(e,t){
-    this.localPlayer=t;
-    this.isHostRole=!1;
-    const n=e.trim().toUpperCase();
-    this.currentLobbyId=n;
-    const i=`guessound_${n.toLowerCase().replace(/[^a-z0-9]/g,"_")}`;
-    if(this.peer)try{this.peer.destroy()}catch{}
-    this.peer=new Km({
-      debug:1,
-      config:{
-        iceServers:[
-          {urls:"stun:stun.l.google.com:19302"},
-          {urls:"stun:stun1.l.google.com:19302"},
-          {urls:"stun:stun2.l.google.com:19302"},
-          {urls:"stun:stun.cloudflare.com:3478"},
-          {urls:"stun:global.stun.twilio.com:3478"}
-        ]
-      }
-    });
+    }catch(err){
+      console.warn("Peer init warning:",err);
+    }
     return new Promise((resolve,reject)=>{
       let resolved=!1;
       const onStateReceived=()=>{
@@ -4347,35 +4368,49 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
           resolve({success:!0,lobby:this.currentLobby});
         }
       };
-      this.peer.on("open",()=>{
-        console.log(`[P2P Client] Connecting to Host "${n}" at ${i}...`);
-        const o=this.peer.connect(i,{reliable:!0});
-        this.hostConnection=o;
-        const sendJoin=()=>{
-          console.log("[P2P Client] WebRTC Direct DataChannel connected to Host! Sending JOIN_REQUEST...");
-          try{o.send({type:"JOIN_REQUEST",user:t,lobbyId:n})}catch(err){console.warn("sendJoin error:",err)}
-        };
-        if(o.open)sendJoin();
-        else o.on("open",sendJoin);
-        o.on("data",a=>{
-          this._handleIncomingP2PMessage(a,"host");
-          onStateReceived();
+      const sendJoin=()=>{
+        const req={type:"JOIN_REQUEST",user:t,lobbyId:n,_time:Date.now()};
+        if(this.hostConnection&&this.hostConnection.open){
+          try{this.hostConnection.send(req)}catch(err){}
+        }
+        if(this.broadcastChannel){
+          try{this.broadcastChannel.postMessage(req)}catch(err){}
+        }
+        try{localStorage.setItem("guessound_p2p_msg_"+n,JSON.stringify(req))}catch(err){}
+      };
+      if(this.peer){
+        this.peer.on("open",()=>{
+          console.log(`[P2P Client] Connecting to Host "${n}" at ${i}...`);
+          const o=this.peer.connect(i,{reliable:!0});
+          this.hostConnection=o;
+          if(o.open)sendJoin();
+          else o.on("open",sendJoin);
+          o.on("data",a=>{
+            this._handleIncomingP2PMessage(a,"host");
+            onStateReceived();
+          });
+          o.on("error",a=>{console.warn("[P2P Client] Connection notice:",a)});
         });
-        o.on("error",a=>{console.warn("[P2P Client] Connection error:",a)});
-      });
-      this.peer.on("error",err=>{
-        console.warn("[P2P Client] Peer error:",err);
-      });
-      if(this.broadcastChannel){
-        this.broadcastChannel.postMessage({type:"JOIN_REQUEST",user:t,lobbyId:n});
+        this.peer.on("error",err=>{
+          console.warn("[P2P Client] Peer notice:",err);
+        });
       }
+      sendJoin();
+      const pollInterval=setInterval(()=>{
+        if(!resolved){
+          sendJoin();
+        }else{
+          clearInterval(pollInterval);
+        }
+      },1000);
       setTimeout(()=>{
+        clearInterval(pollInterval);
         if(!resolved){
           if(this.currentLobby){
             resolved=!0;
             resolve({success:!0,lobby:this.currentLobby});
           }else{
-            reject(new Error(`Could not find or connect to host for room "${n}". Please verify the room code and ensure the host is waiting in the lobby.`));
+            reject(new Error(`Could not connect to room "${n}". Please verify the room code and ensure the host is waiting in the lobby.`));
           }
         }
       },12000);
@@ -4385,14 +4420,14 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
     if(!e||typeof e!="object")return;
     switch(e.type){
       case"STATE_UPDATE":
-        if(e.lobby){
+        if(e.lobby&&(e.lobby.id===this.currentLobbyId||!this.currentLobbyId)){
           this.currentLobby=e.lobby;
           this.currentLobbyId=e.lobby.id;
           this._notifyListeners();
         }
         break;
       case"JOIN_REQUEST":
-        if(this.isHostRole&&this.currentLobby&&e.user){
+        if(this.isHostRole&&this.currentLobby&&e.user&&(e.lobbyId===this.currentLobbyId||!e.lobbyId)){
           const n=e.user,i={};
           Object.values(this.currentLobby.players).forEach(a=>{i[a.teamId]=(i[a.teamId]||0)+1});
           let s=0,o=999;
@@ -4408,7 +4443,7 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
         }
         break;
       case"ACTION":
-        if(this.isHostRole&&this.currentLobby){
+        if(this.isHostRole&&this.currentLobby&&(e.lobbyId===this.currentLobbyId||!e.lobbyId)){
           this._applyAction(e.action,e.payload);
           this._broadcastLobbyState();
           this._notifyListeners();
@@ -4427,6 +4462,8 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
         this.currentLobby.game.currentRound=1;
         this.currentLobby.game.broadcastStage=1;
         this.currentLobby.game.activeTeamIndex=0;
+        if(t.questions&&t.questions.length>0)this.currentLobby.game.questions=t.questions;
+        if(t.teams&&t.teams.length>0)this.currentLobby.teams=t.teams;
         t.question&&(this.currentLobby.game.currentQuestion=t.question);
         break;
       case"AUDIO_BROADCAST":
@@ -4461,7 +4498,7 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
   }
   _broadcastLobbyState(){
     if(!this.currentLobby)return;
-    const e={type:"STATE_UPDATE",lobby:this.currentLobby};
+    const e={type:"STATE_UPDATE",lobby:this.currentLobby,_time:Date.now()};
     this.peerConnections.forEach(t=>{
       if(t&&t.open){
         try{t.send(e)}catch(n){console.warn("[P2P Host] Send failed to peer:",t.peer,n)}
@@ -4470,6 +4507,7 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
     if(this.broadcastChannel){
       try{this.broadcastChannel.postMessage(e)}catch(n){}
     }
+    try{localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(e))}catch(err){}
   }
   async sendAction(e,t={}){
     if(this.isHostRole){
@@ -4478,13 +4516,14 @@ a=extmap-allow-mixed`)!==-1){const n=i.sdp.split(`
       this._notifyListeners();
       return{success:!0,lobby:this.currentLobby};
     }
-    const n={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId};
+    const n={type:"ACTION",action:e,payload:t,userId:this.localPlayer?.id,lobbyId:this.currentLobbyId,_time:Date.now()};
     if(this.hostConnection&&this.hostConnection.open){
       try{this.hostConnection.send(n)}catch(err){console.warn("sendAction error:",err)}
     }
     if(this.broadcastChannel){
       try{this.broadcastChannel.postMessage(n)}catch(err){}
     }
+    try{localStorage.setItem("guessound_p2p_msg_"+(this.currentLobbyId||"room"),JSON.stringify(n))}catch(err){}
     return{success:!0};
   }
   async uploadBase64Sound(e,t,n,i=null){
@@ -4576,8 +4615,8 @@ const Ni=new tA,us=100*1024*1024;class iA{constructor(){this.packData={name:"",d
         <button class="btn-secondary btn-export-pack" data-id="${t.id}" title="Export JSON">📤</button>
         ${t.isBuiltIn?"":`<button class="btn-secondary btn-delete-pack" data-id="${t.id}" style="color:var(--error);" title="Delete">🗑️</button>`}
       </div>
-    `;const s=n.querySelector(".btn-select-pack");s&&s.addEventListener("click",()=>{ut.setActivePack(t.id),Ee.playClick()});const a=n.querySelector(".btn-export-pack");a&&a.addEventListener("click",()=>Fv(t.id));const o=n.querySelector(".btn-delete-pack");o&&o.addEventListener("click",()=>{confirm(`Delete sound pack "${t.name}"?`)&&ut.deletePack(t.id)}),Af.appendChild(n)})}function Uu(){Cu.innerHTML="";const r=ut.getAllPacks(),e=ut.getActivePack();r.forEach(t=>{const i=document.createElement("option");i.value=t.id,i.textContent=`${t.name} (${t.sounds.length} sounds)`,t.id===e.id&&(i.selected=!0),Cu.appendChild(i)})}function Fv(r){var e;const t=ut.exportPackToJSON(r),i=ut.getAllPacks().find(o=>o.id===r)||ut.getActivePack(),n=new Blob([t],{type:"application/json"}),s=URL.createObjectURL(n),a=document.createElement("a");a.href=s,a.download=`sound_pack_${i.name.toLowerCase().replace(/[^a-z0-9]/g,"_")}.json`,document.body.appendChild(a),a.click(),document.body.removeChild(a),URL.revokeObjectURL(s),(e=navigator.clipboard)==null||e.writeText(t).then(()=>{alert(`Pack "${i.name}" exported! JSON downloaded and copied to clipboard.`)}).catch(()=>{alert(`Pack "${i.name}" exported and downloaded!`)})}function $A(){document.querySelectorAll(".mode-chip").forEach(m=>{m.addEventListener("click",()=>{const f=m.dataset.mode;Vl=f,document.querySelectorAll(".mode-chip").forEach(_=>{_.dataset.mode===f?_.classList.add("active"):_.classList.remove("active")}),Ee.playClick()})}),Pn&&Pn.addEventListener("click",()=>{Ar(()=>{ys.classList.add("active"),Ee.playClick()})}),gA.addEventListener("click",()=>{Ar(()=>{ys.classList.add("active"),Ee.playClick()})}),dA.addEventListener("click",()=>{ys.classList.remove("active")}),pA.addEventListener("click",()=>{ys.classList.remove("active"),Cf.click()}),xf&&xf.addEventListener("click",Wf),yf&&yf.addEventListener("click",Wf),bf&&bf.addEventListener("click",jf),vf&&vf.addEventListener("click",jf),mA.addEventListener("click",()=>{Ar(()=>{Dn&&ut.setActivePack(Dn),ys.classList.remove("active"),Ha()})}),of&&of.addEventListener("click",()=>{Gi.classList.remove("active")});const r=document.getElementById("btn-close-google-picker");r&&r.addEventListener("click",()=>{const m=document.getElementById("google-account-picker-modal");m&&m.classList.remove("active")}),cf&&cf.addEventListener("click",()=>Dt.openEmailUsernameModal(p=>bc(p))),Mf&&Mf.addEventListener("click",()=>{Bu()}),sA.addEventListener("click",Tc),rA.addEventListener("click",()=>$h.classList.add("active")),PA.addEventListener("click",()=>$h.classList.remove("active")),oA.addEventListener("click",()=>gl.classList.add("active")),GA.addEventListener("click",()=>gl.classList.remove("active"));const e=document.getElementById("tab-home-play"),t=document.getElementById("tab-home-forge"),i=document.getElementById("home-pane-play"),n=document.getElementById("home-pane-forge"),s=m=>{m==="forge"?(e&&e.classList.remove("active"),t&&t.classList.add("active"),i&&(i.style.display="none"),n&&(n.style.display="block"),kv.updateSizeBudgetUI()):(t&&t.classList.remove("active"),e&&e.classList.add("active"),n&&(n.style.display="none"),i&&(i.style.display="block")),Ee.playClick()};e&&e.addEventListener("click",()=>s("play")),t&&t.addEventListener("click",()=>s("forge"));const a=()=>{Tc(),s("forge"),$h.classList.remove("active"),Ts&&Ts.classList.remove("active")},o=document.getElementById("btn-open-lab-hero");o&&o.addEventListener("click",a);const c=document.getElementById("btn-packs-open-lab");c&&c.addEventListener("click",a),cA.addEventListener("click",()=>_r.classList.add("active")),Ru.addEventListener("click",()=>_r.classList.remove("active"));const l=document.getElementById("btn-guide-start-game");l&&l.addEventListener("click",()=>_r.classList.remove("active"));const h=()=>{mr&&mr.classList.remove("active"),ds&&ds.classList.remove("active")};ds&&ds.addEventListener("click",m=>{m.stopPropagation();const f=mr.classList.toggle("active");ds.classList.toggle("active",f),Ee.playClick()}),document.addEventListener("click",m=>{mr&&mr.classList.contains("active")&&!mr.contains(m.target)&&!(ds!=null&&ds.contains(m.target))&&h()}),Ff&&Ff.addEventListener("click",()=>{h(),openTopicSelector(),Ee.playClick()}),Gf&&Gf.addEventListener("click",()=>{h(),openVault(),Ee.playClick()}),Hf&&Hf.addEventListener("click",()=>{h();const m=document.getElementById("tab-home-forge");m&&m.click(),Ee.playClick()}),Vf&&Vf.addEventListener("click",()=>{h(),_r.classList.add("active"),Ee.playClick()}),Dr&&Dr.addEventListener("click",()=>{h(),Bi.classList.add("active"),Ee.playClick()});const u=()=>{h(),Dt.triggerGoogleSignIn(m=>{bc(m),Ee.playCorrect(),Ji({particleCount:90,spread:80,origin:{y:.5}})})};sf&&sf.addEventListener("click",u),rf&&rf.addEventListener("click",u),af&&af.addEventListener("click",u),xr&&xr.addEventListener("click",u),tf&&tf.addEventListener("click",()=>{Dt.signOut(),Ee.playClick()}),Bf&&Bf.addEventListener("click",()=>{h(),Dt.signOut(),Ee.playClick()}),nf&&nf.addEventListener("click",()=>Dt.openEmailUsernameModal(p=>bc(p)));const d=document.getElementById("btn-close-3d-viewer");d&&d.addEventListener("click",()=>Kh(!1));const p=document.getElementById("btn-viewer-back-home");p&&p.addEventListener("click",()=>Kh(!1));const g=document.getElementById("btn-viewer-back-vault");g&&g.addEventListener("click",()=>Kh(!0));const y=document.getElementById("btn-viewer-replay-sound");y&&y.addEventListener("click",()=>{ku&&Ee.playSoundForQuestion(ku)}),Nn&&Nn.addEventListener("click",()=>{Bi&&Bi.classList.add("active")}),Lf&&Lf.addEventListener("click",()=>{Bi.classList.remove("active")}),Df&&Df.addEventListener("click",()=>{sessionStorage.setItem("pwa_prompt_dismissed","true"),Bi.classList.remove("active")}),kf&&kf.addEventListener("click",async()=>{const m=/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());if(br){Bi.classList.remove("active"),br.prompt();const{outcome:f}=await br.userChoice;console.log(`User PWA response: ${f}`),br=null,Nn&&(Nn.style.display="none")}else m&&Of?Of.style.display="block":(alert('To install, open your browser menu and tap "Install App" or "Add to Home Screen".'),Bi.classList.remove("active"))}),LA.addEventListener("click",()=>Fv(ut.getActivePack().id)),DA.addEventListener("click",()=>{confirm("Reset all sound packs to factory defaults? Custom packs will be replaced.")&&(ut.resetToDefaults(),alert("Sound packs reset to defaults!"))}),Cf.addEventListener("click",()=>{na.style.display="none",Jh.value="",Rf.value="",cc.classList.add("active")}),kA.addEventListener("click",()=>cc.classList.remove("active")),OA.addEventListener("click",()=>cc.classList.remove("active")),Rf.addEventListener("change",m=>{const f=m.target.files[0];if(!f)return;const _=new FileReader;_.onload=x=>{Jh.value=x.target.result},_.readAsText(f)}),UA.addEventListener("click",()=>{const m=Jh.value.trim();if(!m){na.textContent="Please paste JSON or choose a .json file.",na.style.display="block";return}try{const f=ut.importPackFromJSON(m);cc.classList.remove("active"),Ee.playCorrect(),alert(`Successfully imported ${f.length} sound pack(s)! Active pack switched to "${f[0].name}".`)}catch(f){na.textContent=`Import error: ${f.message}`,na.style.display="block",Ee.playWrong()}}),Ma.addEventListener("click",()=>{!He||He.hintUsed||He.isRevealed||(He.use5050Hint().forEach(m=>{const f=ml.children[m];f&&f.classList.add("eliminated")}),Ma.disabled=!0,Ma.style.opacity="0.4",Ee.playClick())}),Nv.addEventListener("click",()=>{qs(),He.nextQuestion(),He.isGameOver?ZA():Ud()}),BA.addEventListener("click",()=>{fl.classList.remove("active"),Tc()}),FA.addEventListener("click",()=>{fl.classList.remove("active"),Ha()}),ac&&ac.addEventListener("change",async m=>{const f=m.target.files[0];if(f)try{mi&&(mi.style.display="inline-flex",mi.textContent="⏳ Encoding File to Base64..."),xc=await convertFileToBase64(f),mi&&(mi.textContent=`⚡ ${f.name} (${Math.round(f.size/1024)} KB Base64)`),Ee.playClick()}catch(_){alert("Failed to read audio file: "+_.message),mi&&(mi.style.display="none")}}),qh&&qh.addEventListener("change",async()=>{var m;const f=qh.value.trim();if(!f){(m=ac==null?void 0:ac.files)!=null&&m.length||(xc=null);return}try{mi&&(mi.style.display="inline-flex",mi.textContent="⏳ Fetching & Encoding URL to Base64..."),xc=await convertAudioUrlToBase64(f),mi&&(mi.textContent="⚡ Web Audio Base64 Encoded")}catch{mi&&(mi.style.display="none")}}),mf&&mf.addEventListener("click",()=>{const m=Zh();m&&Ee.playSoundForQuestion(m)}),WA.addEventListener("click",()=>{const m=Cu.value,f=Zh();f&&(ut.addSoundToPack(m,f),Ee.playCorrect(),alert(`Sound riddle "${f.title}" saved to sound pack with Base64 audio!`))}),HA.addEventListener("submit",m=>{m.preventDefault();const f=Zh();f&&(Ts.classList.remove("active"),Gv([f]))}),window.addEventListener("keydown",m=>{if(!He||He.isRevealed||!Gn.classList.contains("active"))return;const f=m.key.toUpperCase();["A","1"].includes(f)&&ua(0),["B","2"].includes(f)&&ua(1),["C","3"].includes(f)&&ua(2),["D","4"].includes(f)&&ua(3),f===" "&&He.isListeningPhase&&Bu()})}function Zh(){const r=parseInt(document.querySelector('input[name="lab-correct"]:checked').value,10),e=document.getElementById("lab-audio-url").value.trim(),t=parseInt(VA.value,10)||15,i=xc||(e.length>0?e:null);return{id:`custom_${Date.now()}`,title:document.getElementById("lab-title").value,soundHint:document.getElementById("lab-hint").value,category:document.getElementById("lab-category").value,synthPreset:document.getElementById("lab-synth").value,audioUrl:i,timerSeconds:t,options:[document.getElementById("lab-opt-0").value,document.getElementById("lab-opt-1").value,document.getElementById("lab-opt-2").value,document.getElementById("lab-opt-3").value],correctIndex:r,revealTitle:document.getElementById("lab-rev-title").value,revealExplanation:document.getElementById("lab-rev-desc").value,funFact:document.getElementById("lab-rev-fact").value,sceneModel:document.getElementById("lab-scene").value,difficulty:2}}function JA(){const r=()=>{Ar(()=>{Nu(),Er.classList.add("active"),Ee.playClick()})},e=document.getElementById("btn-lobby-nav");e&&e.addEventListener("click",r),ef&&ef.addEventListener("click",r),lf&&lf.addEventListener("click",()=>{Er.classList.remove("active")}),rc&&vr&&(rc.addEventListener("click",()=>{rc.classList.add("active"),vr.classList.remove("active"),ba.classList.add("active"),ul.classList.remove("active"),Ee.playClick()}),vr.addEventListener("click",()=>{vr.classList.add("active"),rc.classList.remove("active"),ul.classList.add("active"),ba.classList.remove("active"),Ee.playClick()}));let t=2;jh&&jh.querySelectorAll(".team-count-chip").forEach(i=>{i.addEventListener("click",()=>{jh.querySelectorAll(".team-count-chip").forEach(n=>n.classList.remove("active")),i.classList.add("active"),t=parseInt(i.dataset.count,10)||2,Ee.playClick()})}),dr&&dr.addEventListener("click",async()=>{const i=Dt.getUser();if(!i)return;const n=_c.value,s=ut.getAllPacks().find(a=>a.id===n)||ut.getActivePack();dr.disabled=!0,dr.innerHTML="<span>⏳ Initializing Serverless P2P Room...</span>";try{await Ni.createLobby(i,s,Et.slice(0,t),Vl),Ee.playCorrect(),Ji({particleCount:80,spread:80,origin:{y:.5}})}catch(a){alert("Could not create P2P room: "+a.message)}finally{dr.disabled=!1,dr.innerHTML="<span>⚡ CREATE SERVERLESS P2P ROOM</span>"}}),pr&&pr.addEventListener("click",async()=>{const i=Eu.value.trim();if(!i){alert("Please enter a 6-character room code (e.g. STEAM-4821)");return}const n=Dt.getUser();pr.disabled=!0,pr.innerHTML="<span>⏳ Connecting to P2P Room...</span>";try{await Ni.joinLobby(i,n),Ee.playCorrect()}catch(s){alert("Join failed: "+s.message)}finally{pr.disabled=!1,pr.innerHTML="<span>🚪 JOIN P2P WEBRTC ROOM</span>"}}),uf&&uf.addEventListener("click",()=>{var i;if(!Ni.currentLobbyId)return;const n=`${window.location.origin}${window.location.pathname}?lobby=${Ni.currentLobbyId}`;(i=navigator.clipboard)==null||i.writeText(n).then(()=>{alert(`Room link copied to clipboard!
-${n}`)}).catch(()=>{alert(`Room ID: ${Ni.currentLobbyId}`)})}),pf&&pf.addEventListener("click",()=>{Ni.leaveLobby(),la.style.display="none",ha.style.display="flex",ba.classList.add("active"),Ee.playClick()}),dl&&dl.addEventListener("click",()=>{Ni.currentLobby&&(Ni.sendAction("START_GAME",{}),Er.classList.remove("active"),Ha())})}function Nu(){if(!_c)return;_c.innerHTML="";const r=ut.getAllPacks(),e=ut.getActivePack();r.forEach(t=>{const i=document.createElement("option");i.value=t.id,i.textContent=`${t.name} (${t.sounds.length} sound riddles)`,t.id===e.id&&(i.selected=!0),_c.appendChild(i)})}function QA(r){var e;if(!r){la&&(la.style.display="none"),ha&&(ha.style.display="flex");return}la&&(la.style.display="block"),ha&&(ha.style.display="none"),ba&&ba.classList.remove("active"),ul&&ul.classList.remove("active"),hf&&(hf.textContent=r.id),df&&(df.textContent=`📦 ${r.packName}`),Wh&&(Wh.innerHTML="",Object.values(r.players||{}).forEach(i=>{const n=document.createElement("div");n.className="lobby-player-card";const s=r.teams[i.teamId]||{name:`Team ${i.teamId+1}`,color:"#d4af37"};n.style.setProperty("--team-color",s.color);let a=i.user.picture||"",o=a?`<img class="lobby-player-avatar" src="${a}" alt="${i.user.name}">`:'<span style="font-size:1.4rem;">🧑‍✈️</span>',c=r.teams.map((l,h)=>`<option value="${h}" ${h===i.teamId?"selected":""}>${l.name}</option>`).join("");n.innerHTML=`
+    `;const s=n.querySelector(".btn-select-pack");s&&s.addEventListener("click",()=>{ut.setActivePack(t.id),Ee.playClick()});const a=n.querySelector(".btn-export-pack");a&&a.addEventListener("click",()=>Fv(t.id));const o=n.querySelector(".btn-delete-pack");o&&o.addEventListener("click",()=>{confirm(`Delete sound pack "${t.name}"?`)&&ut.deletePack(t.id)}),Af.appendChild(n)})}function Uu(){Cu.innerHTML="";const r=ut.getAllPacks(),e=ut.getActivePack();r.forEach(t=>{const i=document.createElement("option");i.value=t.id,i.textContent=`${t.name} (${t.sounds.length} sounds)`,t.id===e.id&&(i.selected=!0),Cu.appendChild(i)})}function Fv(r){var e;const t=ut.exportPackToJSON(r),i=ut.getAllPacks().find(o=>o.id===r)||ut.getActivePack(),n=new Blob([t],{type:"application/json"}),s=URL.createObjectURL(n),a=document.createElement("a");a.href=s,a.download=`sound_pack_${i.name.toLowerCase().replace(/[^a-z0-9]/g,"_")}.json`,document.body.appendChild(a),a.click(),document.body.removeChild(a),URL.revokeObjectURL(s),(e=navigator.clipboard)==null||e.writeText(t).then(()=>{alert(`Pack "${i.name}" exported! JSON downloaded and copied to clipboard.`)}).catch(()=>{alert(`Pack "${i.name}" exported and downloaded!`)})}function $A(){document.querySelectorAll(".mode-chip").forEach(m=>{m.addEventListener("click",()=>{const f=m.dataset.mode;Vl=f,document.querySelectorAll(".mode-chip").forEach(_=>{_.dataset.mode===f?_.classList.add("active"):_.classList.remove("active")}),Ee.playClick()})}),Pn&&Pn.addEventListener("click",()=>{Ar(()=>{ys.classList.add("active"),Ee.playClick()})}),gA.addEventListener("click",()=>{Ar(()=>{ys.classList.add("active"),Ee.playClick()})}),dA.addEventListener("click",()=>{ys.classList.remove("active")}),pA.addEventListener("click",()=>{ys.classList.remove("active"),Cf.click()}),xf&&xf.addEventListener("click",Wf),yf&&yf.addEventListener("click",Wf),bf&&bf.addEventListener("click",jf),vf&&vf.addEventListener("click",jf),mA.addEventListener("click",()=>{Ar(()=>{Dn&&ut.setActivePack(Dn),ys.classList.remove("active"),Ha()})}),of&&of.addEventListener("click",()=>{Gi.classList.remove("active")});const r=document.getElementById("btn-close-google-picker");r&&r.addEventListener("click",()=>{const m=document.getElementById("google-account-picker-modal");m&&m.classList.remove("active")}),cf&&cf.addEventListener("click",()=>Dt.openEmailUsernameModal(p=>bc(p))),Mf&&Mf.addEventListener("click",()=>{Bu()}),sA.addEventListener("click",Tc),rA.addEventListener("click",()=>$h.classList.add("active")),PA.addEventListener("click",()=>$h.classList.remove("active")),oA.addEventListener("click",()=>gl.classList.add("active")),GA.addEventListener("click",()=>gl.classList.remove("active"));const e=document.getElementById("tab-home-play"),t=document.getElementById("tab-home-forge"),i=document.getElementById("home-pane-play"),n=document.getElementById("home-pane-forge"),s=m=>{m==="forge"?(e&&e.classList.remove("active"),t&&t.classList.add("active"),i&&(i.style.display="none"),n&&(n.style.display="block"),kv.updateSizeBudgetUI()):(t&&t.classList.remove("active"),e&&e.classList.add("active"),n&&(n.style.display="none"),i&&(i.style.display="block")),Ee.playClick()};e&&e.addEventListener("click",()=>s("play")),t&&t.addEventListener("click",()=>s("forge"));const a=()=>{Tc(),s("forge"),$h.classList.remove("active"),Ts&&Ts.classList.remove("active")},o=document.getElementById("btn-open-lab-hero");o&&o.addEventListener("click",a);const c=document.getElementById("btn-packs-open-lab");c&&c.addEventListener("click",a),cA.addEventListener("click",()=>_r.classList.add("active")),Ru.addEventListener("click",()=>_r.classList.remove("active"));const l=document.getElementById("btn-guide-start-game");l&&l.addEventListener("click",()=>_r.classList.remove("active"));const h=()=>{mr&&mr.classList.remove("active"),ds&&ds.classList.remove("active")};ds&&ds.addEventListener("click",m=>{m.stopPropagation();const f=mr.classList.toggle("active");ds.classList.toggle("active",f),Ee.playClick()}),document.addEventListener("click",m=>{mr&&mr.classList.contains("active")&&!mr.contains(m.target)&&!(ds!=null&&ds.contains(m.target))&&h()}),Ff&&Ff.addEventListener("click",()=>{h(),openTopicSelector(),Ee.playClick()}),Gf&&Gf.addEventListener("click",()=>{h(),openVault(),Ee.playClick()}),Hf&&Hf.addEventListener("click",()=>{h();const m=document.getElementById("tab-home-forge");m&&m.click(),Ee.playClick()}),Vf&&Vf.addEventListener("click",()=>{h(),_r.classList.add("active"),Ee.playClick()}),Dr&&Dr.addEventListener("click",()=>{h(),Bi.classList.add("active"),Ee.playClick()});const u=()=>{h(),Dt.triggerGoogleSignIn(m=>{bc(m),Ee.playCorrect(),Ji({particleCount:90,spread:80,origin:{y:.5}})})};sf&&sf.addEventListener("click",u),rf&&rf.addEventListener("click",u),af&&af.addEventListener("click",u),xr&&xr.addEventListener("click",u),tf&&tf.addEventListener("click",()=>{Dt.signOut(),Ee.playClick()}),Bf&&Bf.addEventListener("click",()=>{h(),Dt.signOut(),Ee.playClick()}),nf&&nf.addEventListener("click",()=>Dt.openEmailUsernameModal(p=>bc(p)));const d=document.getElementById("btn-close-3d-viewer");d&&d.addEventListener("click",()=>Kh(!1));const p=document.getElementById("btn-viewer-back-home");p&&p.addEventListener("click",()=>Kh(!1));const g=document.getElementById("btn-viewer-back-vault");g&&g.addEventListener("click",()=>Kh(!0));const y=document.getElementById("btn-viewer-replay-sound");y&&y.addEventListener("click",()=>{ku&&Ee.playSoundForQuestion(ku)}),Nn&&Nn.addEventListener("click",()=>{Bi&&Bi.classList.add("active")}),Lf&&Lf.addEventListener("click",()=>{Bi.classList.remove("active")}),Df&&Df.addEventListener("click",()=>{sessionStorage.setItem("pwa_prompt_dismissed","true"),Bi.classList.remove("active")}),kf&&kf.addEventListener("click",async()=>{const m=/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());if(br){Bi.classList.remove("active"),br.prompt();const{outcome:f}=await br.userChoice;console.log(`User PWA response: ${f}`),br=null,Nn&&(Nn.style.display="none")}else m&&Of?Of.style.display="block":(alert('To install, open your browser menu and tap "Install App" or "Add to Home Screen".'),Bi.classList.remove("active"))}),LA.addEventListener("click",()=>Fv(ut.getActivePack().id)),DA.addEventListener("click",()=>{confirm("Reset all sound packs to factory defaults? Custom packs will be replaced.")&&(ut.resetToDefaults(),alert("Sound packs reset to defaults!"))}),Cf.addEventListener("click",()=>{na.style.display="none",Jh.value="",Rf.value="",cc.classList.add("active")}),kA.addEventListener("click",()=>cc.classList.remove("active")),OA.addEventListener("click",()=>cc.classList.remove("active")),Rf.addEventListener("change",m=>{const f=m.target.files[0];if(!f)return;const _=new FileReader;_.onload=x=>{Jh.value=x.target.result},_.readAsText(f)}),UA.addEventListener("click",()=>{const m=Jh.value.trim();if(!m){na.textContent="Please paste JSON or choose a .json file.",na.style.display="block";return}try{const f=ut.importPackFromJSON(m);cc.classList.remove("active"),Ee.playCorrect(),alert(`Successfully imported ${f.length} sound pack(s)! Active pack switched to "${f[0].name}".`)}catch(f){na.textContent=`Import error: ${f.message}`,na.style.display="block",Ee.playWrong()}}),Ma.addEventListener("click",()=>{!He||He.hintUsed||He.isRevealed||(He.use5050Hint().forEach(m=>{const f=ml.children[m];f&&f.classList.add("eliminated")}),Ma.disabled=!0,Ma.style.opacity="0.4",Ee.playClick())}),Nv.addEventListener("click",()=>{qs(),He.nextQuestion(),He.isGameOver?ZA():Ud()}),BA.addEventListener("click",()=>{fl.classList.remove("active"),Tc()}),FA.addEventListener("click",()=>{fl.classList.remove("active"),Ha()}),ac&&ac.addEventListener("change",async m=>{const f=m.target.files[0];if(f)try{mi&&(mi.style.display="inline-flex",mi.textContent="⏳ Encoding File to Base64..."),xc=await convertFileToBase64(f),mi&&(mi.textContent=`⚡ ${f.name} (${Math.round(f.size/1024)} KB Base64)`),Ee.playClick()}catch(_){alert("Failed to read audio file: "+_.message),mi&&(mi.style.display="none")}}),qh&&qh.addEventListener("change",async()=>{var m;const f=qh.value.trim();if(!f){(m=ac==null?void 0:ac.files)!=null&&m.length||(xc=null);return}try{mi&&(mi.style.display="inline-flex",mi.textContent="⏳ Fetching & Encoding URL to Base64..."),xc=await convertAudioUrlToBase64(f),mi&&(mi.textContent="⚡ Web Audio Base64 Encoded")}catch{mi&&(mi.style.display="none")}}),mf&&mf.addEventListener("click",()=>{const m=Zh();m&&Ee.playSoundForQuestion(m)}),WA.addEventListener("click",()=>{const m=Cu.value,f=Zh();f&&(ut.addSoundToPack(m,f),Ee.playCorrect(),alert(`Sound riddle "${f.title}" saved to sound pack with Base64 audio!`))}),HA.addEventListener("submit",m=>{m.preventDefault();const f=Zh();f&&(Ts.classList.remove("active"),Gv([f]))}),window.addEventListener("keydown",m=>{if(!He||He.isRevealed||!Gn.classList.contains("active"))return;const f=m.key.toUpperCase();["A","1"].includes(f)&&ua(0),["B","2"].includes(f)&&ua(1),["C","3"].includes(f)&&ua(2),["D","4"].includes(f)&&ua(3),f===" "&&He.isListeningPhase&&Bu()})}function Zh(){const r=parseInt(document.querySelector('input[name="lab-correct"]:checked').value,10),e=document.getElementById("lab-audio-url").value.trim(),t=parseInt(VA.value,10)||15,i=xc||(e.length>0?e:null);return{id:`custom_${Date.now()}`,title:document.getElementById("lab-title").value,soundHint:document.getElementById("lab-hint").value,category:document.getElementById("lab-category").value,synthPreset:document.getElementById("lab-synth").value,audioUrl:i,timerSeconds:t,options:[document.getElementById("lab-opt-0").value,document.getElementById("lab-opt-1").value,document.getElementById("lab-opt-2").value,document.getElementById("lab-opt-3").value],correctIndex:r,revealTitle:document.getElementById("lab-rev-title").value,revealExplanation:document.getElementById("lab-rev-desc").value,funFact:document.getElementById("lab-rev-fact").value,sceneModel:document.getElementById("lab-scene").value,difficulty:2}}function JA(){const r=()=>{Ar(()=>{Nu(),Er.classList.add("active"),Ee.playClick()})},e=document.getElementById("btn-lobby-nav");e&&e.addEventListener("click",r),ef&&ef.addEventListener("click",r),lf&&lf.addEventListener("click",()=>{Er.classList.remove("active")}),rc&&vr&&(rc.addEventListener("click",()=>{rc.classList.add("active"),vr.classList.remove("active"),ba.classList.add("active"),ul.classList.remove("active"),Ee.playClick()}),vr.addEventListener("click",()=>{vr.classList.add("active"),rc.classList.remove("active"),ul.classList.add("active"),ba.classList.remove("active"),Ee.playClick()}));let t=2;jh&&jh.querySelectorAll(".team-count-chip").forEach(i=>{i.addEventListener("click",()=>{jh.querySelectorAll(".team-count-chip").forEach(n=>n.classList.remove("active")),i.classList.add("active"),t=parseInt(i.dataset.count,10)||2,Ee.playClick()})}),dr&&dr.addEventListener("click",async()=>{let i=Dt.getUser()||Dt.signInAsDemoUser();const n=_c.value,s=ut.getAllPacks().find(a=>a.id===n)||ut.getActivePack();dr.disabled=!0,dr.innerHTML="<span>⏳ Initializing Serverless P2P Room...</span>";try{await Ni.createLobby(i,s,Et.slice(0,t),Vl),Ee.playCorrect(),Ji({particleCount:80,spread:80,origin:{y:.5}})}catch(a){alert("Could not create P2P room: "+a.message)}finally{dr.disabled=!1,dr.innerHTML="<span>⚡ CREATE SERVERLESS P2P ROOM</span>"}}),pr&&pr.addEventListener("click",async()=>{const i=Eu.value.trim();if(!i){alert("Please enter a 6-character room code (e.g. STEAM-4821)");return}let n=Dt.getUser()||Dt.signInAsDemoUser();pr.disabled=!0,pr.innerHTML="<span>⏳ Connecting to P2P Room...</span>";try{await Ni.joinLobby(i,n),Ee.playCorrect()}catch(s){alert("Join failed: "+s.message)}finally{pr.disabled=!1,pr.innerHTML="<span>🚪 JOIN P2P WEBRTC ROOM</span>"}}),uf&&uf.addEventListener("click",()=>{var i;if(!Ni.currentLobbyId)return;const n=`${window.location.origin}${window.location.pathname}?lobby=${Ni.currentLobbyId}`;(i=navigator.clipboard)==null||i.writeText(n).then(()=>{alert(`Room link copied to clipboard!
+${n}`)}).catch(()=>{alert(`Room ID: ${Ni.currentLobbyId}`)})}),pf&&pf.addEventListener("click",()=>{Ni.leaveLobby(),la.style.display="none",ha.style.display="flex",ba.classList.add("active"),Ee.playClick()}),dl&&dl.addEventListener("click",()=>{if(Ni.currentLobby){const count=Math.max(6,(Ni.currentLobby.teams||[]).length*3);const qList=ut.getRandomQuestionsFromActive(count);Ni.sendAction("START_GAME",{questions:qList,teams:Ni.currentLobby.teams});Er&&Er.classList.remove("active");Gv(qList,Ni.currentLobby.teams)}})}function Nu(){if(!_c)return;_c.innerHTML="";const r=ut.getAllPacks(),e=ut.getActivePack();r.forEach(t=>{const i=document.createElement("option");i.value=t.id,i.textContent=`${t.name} (${t.sounds.length} sound riddles)`,t.id===e.id&&(i.selected=!0),_c.appendChild(i)})}function QA(r){var e;if(!r){la&&(la.style.display="none"),ha&&(ha.style.display="flex");return}la&&(la.style.display="block"),ha&&(ha.style.display="none"),ba&&ba.classList.remove("active"),ul&&ul.classList.remove("active"),hf&&(hf.textContent=r.id),df&&(df.textContent=`📦 ${r.packName}`),Wh&&(Wh.innerHTML="",Object.values(r.players||{}).forEach(i=>{const n=document.createElement("div");n.className="lobby-player-card";const s=r.teams[i.teamId]||{name:`Team ${i.teamId+1}`,color:"#d4af37"};n.style.setProperty("--team-color",s.color);let a=i.user.picture||"",o=a?`<img class="lobby-player-avatar" src="${a}" alt="${i.user.name}">`:'<span style="font-size:1.4rem;">🧑‍✈️</span>',c=r.teams.map((l,h)=>`<option value="${h}" ${h===i.teamId?"selected":""}>${l.name}</option>`).join("");n.innerHTML=`
         ${o}
         <div class="lobby-player-info">
           <div class="lobby-player-name">${i.user.name} ${i.isHost?"👑 (Host)":""}</div>
@@ -4586,7 +4625,7 @@ ${n}`)}).catch(()=>{alert(`Room ID: ${Ni.currentLobbyId}`)})}),pf&&pf.addEventLi
         <select class="lobby-team-select">
           ${c}
         </select>
-      `,n.querySelector(".lobby-team-select").addEventListener("change",l=>{const h=parseInt(l.target.value,10);Ni.sendAction("ASSIGN_TEAM",{playerId:i.user.id,teamId:h})}),Wh.appendChild(n)}));const t=r.hostId===((e=Dt.getUser())==null?void 0:e.id);dl&&(dl.style.display=t?"inline-flex":"none"),r.game&&r.game.status==="BROADCASTING"&&li.classList.contains("active")&&(Er.classList.remove("active"),Ha())}function qs(){wa&&(clearInterval(wa),wa=null),Cs.forEach(r=>clearTimeout(r)),Cs=[],Iu=-1,Ee.stopQuestionAudio()}function Tc(){qs();const r=document.getElementById("scene-viewer-hud");r&&(r.classList.remove("active"),r.style.display="none"),fl.classList.remove("active"),Gn.classList.remove("active"),li.classList.add("active");const e=ut.getActivePack();Mt.loadThemeScene(e.sounds[0]||e,e),Mt.setRevealed(!0)}const qf="sexercise_first_session_guide_seen";function zv(r){if(localStorage.getItem(qf))r();else{localStorage.setItem(qf,"true"),_r.classList.add("active");const e=()=>{_r.classList.remove("active"),Ru.removeEventListener("click",e);const i=document.getElementById("btn-guide-start-game");i&&i.removeEventListener("click",e),r()};Ru.addEventListener("click",e,{once:!0});const t=document.getElementById("btn-guide-start-game");t&&t.addEventListener("click",e,{once:!0})}}function Ha(r=null){zv(()=>{qs();const e=Math.max(6,Et.length*3),t=ut.getRandomQuestionsFromActive(e,r);if(t.length===0){alert("No questions found in this pack/category. Please select another.");return}He=new Vy(t,Vl,Et),Hv(),li.classList.remove("active"),Gn.classList.add("active"),Ee.playGearSpin(),Ud()})}function Gv(r){zv(()=>{qs(),He=new Vy(r,Vl,Et),Hv(),li.classList.remove("active"),Gn.classList.add("active"),Ee.playGearSpin(),Ud()})}function Hv(){!Xh||!He||(Xh.innerHTML="",He.teams.forEach((r,e)=>{const t=document.createElement("div");t.className=`hud-team-score-badge ${e===He.activeTeamIndex?"active-turn":""}`,t.id=`hud-team-badge-${e}`,t.style.setProperty("--team-color",r.color);let i="";if(r.avatar)i=`<img class="hud-team-avatar" src="${r.avatar}" alt="${r.name}">`;else{const n=["⚙️","⚡","🦊","🎈","🧪","📻","🕵️","🚀","🏆","🔧"];i=`<span style="font-size:0.95rem;">${n[e%n.length]}</span>`}t.innerHTML=`
+      `,n.querySelector(".lobby-team-select").addEventListener("change",l=>{const h=parseInt(l.target.value,10);Ni.sendAction("ASSIGN_TEAM",{playerId:i.user.id,teamId:h})}),Wh.appendChild(n)}));const t=r.hostId===((e=Dt.getUser())==null?void 0:e.id);dl&&(dl.style.display=t?"inline-flex":"none");if(r.game&&r.game.status==="BROADCASTING"){Er&&Er.classList.remove("active");if(!Gn.classList.contains("active")){const qList=(r.game.questions&&r.game.questions.length>0)?r.game.questions:ut.getRandomQuestionsFromActive(6);Gv(qList,r.teams)}}}function qs(){wa&&(clearInterval(wa),wa=null),Cs.forEach(r=>clearTimeout(r)),Cs=[],Iu=-1,Ee.stopQuestionAudio()}function Tc(){qs();const r=document.getElementById("scene-viewer-hud");r&&(r.classList.remove("active"),r.style.display="none"),fl.classList.remove("active"),Gn.classList.remove("active"),li.classList.add("active");const e=ut.getActivePack();Mt.loadThemeScene(e.sounds[0]||e,e),Mt.setRevealed(!0)}const qf="sexercise_first_session_guide_seen";function zv(r){if(localStorage.getItem(qf))r();else{localStorage.setItem(qf,"true"),_r.classList.add("active");const e=()=>{_r.classList.remove("active"),Ru.removeEventListener("click",e);const i=document.getElementById("btn-guide-start-game");i&&i.removeEventListener("click",e),r()};Ru.addEventListener("click",e,{once:!0});const t=document.getElementById("btn-guide-start-game");t&&t.addEventListener("click",e,{once:!0})}}function Ha(r=null){zv(()=>{qs();const e=Math.max(6,Et.length*3),t=ut.getRandomQuestionsFromActive(e,r);if(t.length===0){alert("No questions found in this pack/category. Please select another.");return}He=new Vy(t,Vl,Et),Hv(),li.classList.remove("active"),Gn.classList.add("active"),Ee.playGearSpin(),Ud()})}function Gv(r,teams=null){zv(()=>{qs();const tms=(teams&&teams.length>=2)?teams:Et;He=new Vy(r,Vl,tms);Hv();li.classList.remove("active");Gn.classList.add("active");Ee.playGearSpin();Ud()})}function Hv(){!Xh||!He||(Xh.innerHTML="",He.teams.forEach((r,e)=>{const t=document.createElement("div");t.className=`hud-team-score-badge ${e===He.activeTeamIndex?"active-turn":""}`,t.id=`hud-team-badge-${e}`,t.style.setProperty("--team-color",r.color);let i="";if(r.avatar)i=`<img class="hud-team-avatar" src="${r.avatar}" alt="${r.name}">`;else{const n=["⚙️","⚡","🦊","🎈","🧪","📻","🕵️","🚀","🏆","🔧"];i=`<span style="font-size:0.95rem;">${n[e%n.length]}</span>`}t.innerHTML=`
       ${i}
       <span class="hud-team-score-name" id="hud-name-${e}">${r.name}</span>
       <span class="hud-team-score-pts" id="hud-score-${e}">${r.score} PTS</span>
